@@ -13,9 +13,9 @@ class CoreParser {
   public static var ows(default, never) : ParseObject<String> = optWhitespace();
 
   // Integers
-  public static var integerZero(default, never) : ParseObject<Int> = "0".string().map(Std.parseInt);
-  public static var integerNonZero(default, never) : ParseObject<Int> = ~/[1-9][0-9]*/.regexp().map(Std.parseInt);
-  public static var integerNonZeroNeg(default, never) : ParseObject<Int> = ~/\-[1-9][0-9]*/.regexp().map(Std.parseInt);
+  static var integerZero(default, never) : ParseObject<Int> = "0".string().map(Std.parseInt);
+  static var integerNonZero(default, never) : ParseObject<Int> = ~/[1-9][0-9]*/.regexp().map(Std.parseInt);
+  static var integerNonZeroNeg(default, never) : ParseObject<Int> = ~/\-[1-9][0-9]*/.regexp().map(Std.parseInt);
   public static var integer(default, never) : ParseObject<Int> = integerZero | integerNonZero | integerNonZeroNeg;
 
   // Floats

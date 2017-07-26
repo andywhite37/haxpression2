@@ -92,7 +92,8 @@ class TestExprParser {
         );
       })
       .apply("1+2*3");
-    trace(result);
+    //trace(result);
+    Assert.isTrue(result.status);
   }
 
   function assertExpr(input : String, expected : Expr<Value<Float, ParseMeta>, ParseMeta>, ?pos : haxe.PosInfos) : Void {
