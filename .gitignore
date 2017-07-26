@@ -1,0 +1,11 @@
+# Node
+node_modules/
+
+# Haxe
+.haxelib/
+
+# Editors
+.vscode/
+
+# Project files
+bin/

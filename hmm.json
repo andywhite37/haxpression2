@@ -1,0 +1,25 @@
+{
+  "dependencies": [
+    {
+      "name": "parsihax",
+      "type": "git",
+      "dir": null,
+      "ref": "c10c800",
+      "url": "git@github.com:deathbeam/parsihax"
+    },
+    {
+      "name": "thx.core",
+      "type": "git",
+      "dir": null,
+      "ref": "f319d99",
+      "url": "git@github.com:fponticelli/thx.core"
+    },
+    {
+      "name": "utest",
+      "type": "git",
+      "dir": null,
+      "ref": "b3c4c8d",
+      "url": "git@github.com:fponticelli/utest"
+    }
+  ]
+}
