@@ -6,24 +6,27 @@ using thx.Eithers;
 
 import utest.Assert;
 
-import parsihax.Parser.*;
-using parsihax.Parser;
+import Parsihax.*;
+using Parsihax;
 
 import haxpression2.CoreParser as C;
 using haxpression2.Expr;
 import haxpression2.ExprParser;
+import haxpression2.ParseMeta;
 import haxpression2.ParseMeta.meta;
 using haxpression2.Value;
 import haxpression2.ValueParser;
 
 class TestExprParser {
+  var exprParser : Parser<Expr<Value<Float>, ParseMeta>>;
+
   public function new() {}
 
-  public function testX() {
-    Assert.pass();
+  public function setup() {
+    exprParser = ExprParser.create(getOptions()).expr;
   }
 
-  static function getOptions() : ExprParserOptions<Value<Float, ParseMeta>, Float, ParseMeta> {
+  static function getOptions() : ExprParserOptions<Value<Float>, Float, ParseMeta> {
     return {
       variableNameRegexp: ~/[a-z][a-z0-9]*(?:!?[a-z0-9]+)?/i,
       functionNameRegexp: ~/[a-z]+/i,
@@ -41,7 +44,7 @@ class TestExprParser {
     };
   }
 
-  public function testWhitespace_Errors() {
+  public function testWhitespaceErrors() {
     assertError("");
     assertError(" ");
     assertError("   ");
@@ -49,70 +52,75 @@ class TestExprParser {
     assertError("\t ");
   }
 
-  public function testLiteralInts() {
-    assertLit("1", ELit(VInt(1, meta(0)), meta(0)));
+  public function testLitNum() {
+    assertExpr("0.0", ELit(VNum(0.0), new ParseMeta({ offset: 0, line: 1, column: 1 })));
+    assertExpr("1.0", ELit(VNum(1.0), new ParseMeta({ offset: 0, line: 1, column: 1 })));
+    assertExpr(" 1.1  ", ELit(VNum(1.1), new ParseMeta({ offset: 1, line: 1, column: 2 })));
   }
 
-  public function testVariables() {
-    assertVar("a", "a", 0);
-    assertVar(" a", "a", 1);
-    assertVar(" a ", "a", 1);
-    assertVar("   a ", "a", 3);
-    assertVar("sales", "sales", 0);
-    assertVar(" sales", "sales", 1);
-    assertVar("   sales ", "sales", 3);
-    assertVar("asn!sales", "asn!sales", 0);
-    assertVar(" asn!sales", "asn!sales", 1);
-    assertVar("   asn!sales ", "asn!sales", 3);
-    assertVar("asn!sales", "asn!sales", 0);
+  public function testLitInt() {
+    assertExpr("0", ELit(VInt(0), new ParseMeta({ offset: 0, line: 1, column: 1 })));
+    assertExpr("1", ELit(VInt(1), new ParseMeta({ offset: 0, line: 1, column: 1 })));
+    assertExpr(" 1  ", ELit(VInt(1), new ParseMeta({ offset: 1, line: 1, column: 2 })));
   }
 
-  public function testVariables_Errors() {
+  public function testVar() {
+    assertExpr("a", EVar("a", meta(0, 1, 1)));
+    assertExpr(" a", EVar("a", meta(1, 1, 2)));
+    assertExpr(" a ", EVar("a", meta(1, 1, 2)));
+    assertExpr("   a ", EVar("a", meta(3, 1, 4)));
+    assertExpr("sales", EVar("sales", meta(0, 1, 1)));
+    assertExpr(" sales", EVar("sales", meta(1, 1, 2)));
+    assertExpr("   sales ", EVar("sales", meta(3, 1, 4)));
+    assertExpr("asn!sales", EVar("asn!sales", meta(0, 1, 1)));
+    assertExpr(" asn!sales", EVar("asn!sales", meta(1, 1, 2)));
+    assertExpr("   asn!sales ", EVar("asn!sales", meta(3, 1, 4)));
+  }
+
+  public function testVarErrors() {
+    assertError("!asn");
+    assertError("asn!");
     assertError("asn!!sales");
     assertError("asn!sales x");
   }
 
-  public function xtestBinOp_Simple() {
+  public function testBinOp() {
     assertExpr("1+2",
       EBinOp("+",
-        ELit(VInt(1, meta(0)), meta(0)),
-        ELit(VInt(2, meta(4)), meta(4)),
-        meta(0)
+        ELit(VInt(1), meta(0, 1, 1)),
+        ELit(VInt(2), meta(2, 1, 3)),
+        meta(1, 1, 2)
+      )
+    );
+
+    assertExpr(" 1  + 2  ",
+      EBinOp("+",
+        ELit(VInt(1), meta(1, 1, 2)),
+        ELit(VInt(2), meta(6, 1, 7)),
+        meta(4, 1, 5)
       )
     );
   }
 
-  public function testBinary() : Void {
-    var result = sepBy(C.integer, "+".string())
-      .map(function(ints : Array<Int>) {
-        return EBinOp("+",
-          ELit(VInt(ints[0], meta(0)), meta(0)),
-          ELit(VInt(ints[1], meta(0)), meta(0)),
-          meta(0)
-        );
-      })
-      .apply("1+2*3");
-    //trace(result);
-    Assert.isTrue(result.status);
-  }
-
-  function assertExpr(input : String, expected : Expr<Value<Float, ParseMeta>, ParseMeta>, ?pos : haxe.PosInfos) : Void {
+  function assertExpr(input : String, expected : Expr<Value<Float>, ParseMeta>, ?pos : haxe.PosInfos) : Void {
     switch ExprParser.parse(input, getOptions()) {
       case Left(parseError) : Assert.fail(parseError.toString(), pos);
       case Right(actual) : Assert.same(expected, actual, pos);
     }
   }
 
-  function assertLit(input : String, expected : Expr<Value<Float, ParseMeta>, ParseMeta>, ?pos : haxe.PosInfos) : Void {
+/*
+  function assertLit(input : String, expected : Expr<Value<Float>, ParseMeta>, ?pos : haxe.PosInfos) : Void {
     switch ExprParser.parse(input, getOptions()) {
       case Left(parseError) : Assert.fail(parseError.toString(), pos);
       case Right(actual) : Assert.same(expected, actual);
     };
   }
 
-  function assertVar(input : String, name : String, index : Int, ?pos : haxe.PosInfos) : Void {
-    assertExpr(input, EVar(name, new ParseMeta(index)), pos);
+  function assertVar(input : String, name : String, meta : ParseMeta, ?pos : haxe.PosInfos) : Void {
+    assertExpr(input, EVar(name, meta), pos);
   }
+  */
 
   function assertError(input : String, ?pos : haxe.PosInfos) : Void {
     switch ExprParser.parse(input, getOptions()) {

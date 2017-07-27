@@ -4,10 +4,10 @@ import thx.Either;
 using thx.Strings;
 import thx.Unit;
 
-import parsihax.Parser.*;
-using parsihax.Parser;
-import parsihax.ParseObject;
-import parsihax.ParseResult;
+import Parsihax.*;
+using Parsihax;
+//import Parsihax.Parser;
+//import Parsihax.ParseResult;
 
 import haxpression2.CoreParser as C;
 import haxpression2.Expr;
@@ -33,101 +33,63 @@ typedef ExprParserOptions<V, N, A> = {
   variableNameRegexp: EReg,
   functionNameRegexp: EReg,
   convertFloat: Float -> N,
-  convertValue: Value<N, A> -> V,
+  convertValue: Value<N> -> V,
   binOps: Array<BinOp>,
   unOps: {
     pre: Array<UnOp>,
     post: Array<UnOp>
   },
-  meta: Int -> A
+  meta: Index -> A
+};
+
+typedef ExprParsers<V, A> = {
+  expr: Parser<Expr<V, A>>
 };
 
 class ExprParser {
-  public static function exprLit<V, N, A>(options: ExprParserOptions<V, N, A>) : ParseObject<Expr<V, A>> {
-    return index().flatMap(index ->
-      V.value(options).map(v -> ELit(options.convertValue(v), options.meta(index)))
+
+  public static function create<V, N, A>(options: ExprParserOptions<V, N, A>) : ExprParsers<V, A> {
+    var valueParser = ValueParser.create(options).value;
+    var meta = options.meta;
+
+    var expr : Parser<Expr<V, A>>;
+
+    var exprLit : Parser<Expr<V, A>> = index().flatMap(index ->
+      valueParser.map(v -> ELit(options.convertValue(v), meta(index)))
     );
-  }
 
-  public static function exprVar<V, N, A>(options: ExprParserOptions<V, N, A>) : ParseObject<Expr<V, A>> {
-    return index().flatMap(index ->
-      options.variableNameRegexp.regexp().map(name -> EVar(name, options.meta(index)))
+    var exprVar : Parser<Expr<V, A>> = index().flatMap(index ->
+      options.variableNameRegexp.regexp().map(v -> EVar(v, meta(index)))
     );
-  }
 
-  public static function binOp<V, N, A>(options : ExprParserOptions<V, N, A>) : ParseObject<String> {
-    return "+".string();
-  }
-
-  public static function exprBinOp<V, N, A>(options: ExprParserOptions<V, N, A>) : ParseObject<Expr<V, A>> {
-    return index().flatMap(index ->
-      C.ows
-        .then(expr(options))
-        .sepBy(binOp(options))
+    var exprParen : Parser<Expr<V, A>> = index().flatMap(index ->
+      string("(")
         .skip(C.ows)
-        .flatMap(function(exprs : Array<Expr<V, A>>) : ParseObject<Expr<V, A>> {
-          return if (exprs.length <= 1) {
-            fail('expected to find at least two expressions for bin op');
-          } else {
-            succeed(EBinOp("+", exprs[0], exprs[1], options.meta(index)));
-          }
-        })
+        .then(expr)
+        .skip(C.ows)
+        .skip(string(")"))
     );
-    /*
-    return index().flatMap(function(index : Int) {
-      trace('exprBinOp $index');
-      return ows()
-        .then(expr(options))
-        .skip(ows())
-        .flatMap(function(left : Expr<N, ParseMeta>) {
-          return binOp(options)
-            .skip(ows())
-            .flatMap(function(operator : String) {
-               return expr(options)
-                .skip(ows())
-                .map(function(right : Expr<N, ParseMeta>) : Expr<N, ParseMeta> {
-                  return EBinOp(operator, left, right, new ParseMeta(index));
-                });
-            });
-        });
-    });
-    */
-  }
 
-  public static function exprUnOpPre<V, A>() : ParseObject<Expr<V, A>> {
-    throw new thx.error.NotImplemented();
-  }
+    var addTerm : Parser<Expr<V, A>> =
+      C.ows
+        .then(choice([exprParen, exprLit, exprVar]))
+        .skip(C.ows);
 
-  public static function exprUnOpPost<V, A>() : ParseObject<Expr<V, A>> {
-    throw new thx.error.NotImplemented();
-  }
+    var addOp : Parser<Expr<V, A> -> Expr<V, A> -> Expr<V, A>> = index().flatMap(index ->
+       C.ows
+        .then(regexp(~/\+/).map(op -> (l, r) -> EBinOp(op, l, r, meta(index))))
+        .skip(C.ows)
+    );
 
-  public static function exprFunc<V, A>() : ParseObject<Expr<V, A>> {
-    throw new thx.error.NotImplemented();
-  }
+    expr = chainl1(addTerm, addOp);
 
-  public static function exprCond<V, A>() : ParseObject<Expr<V, A>> {
-    throw new thx.error.NotImplemented();
-  }
-
-  public static function expr<V, N, A>(options: ExprParserOptions<V, N, A>) : ParseObject<Expr<V, A>> {
-    return C.ows
-      .then(
-        alt([
-          //exprCond(),
-          //exprBinOp(options),
-          //exprUnOpPost(),
-          //exprUnOpPre(),
-          //exprFunc(),
-          exprVar(options),
-          exprLit(options)
-        ])
-      )
-      .skip(C.ows);
+    return {
+      expr: expr
+    };
   }
 
   public static function parse<V, N, A>(input : String, options : ExprParserOptions<V, N, A>) : Either<ParseError, Expr<V, A>> {
-    var parseResult : ParseResult<Expr<V, A>> = expr(options).skip(eof()).apply(input);
+    var parseResult : Result<Expr<V, A>> = create(options).expr.skip(eof()).apply(input);
     return if (parseResult.status) {
       Right(parseResult.value);
     } else {

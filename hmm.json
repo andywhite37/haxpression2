@@ -1,10 +1,17 @@
 {
   "dependencies": [
     {
+      "name": "monax",
+      "type": "git",
+      "dir": "src",
+      "ref": "8682443",
+      "url": "git@github.com:sledorze/monax"
+    },
+    {
       "name": "parsihax",
       "type": "git",
       "dir": null,
-      "ref": "c10c800",
+      "ref": "v0.2.2",
       "url": "git@github.com:deathbeam/parsihax"
     },
     {

@@ -1,4 +1,5 @@
 -cp src
+-lib monax
 -lib parsihax
 -lib thx.core
 

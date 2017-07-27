@@ -5,7 +5,7 @@ import haxe.CallStack;
 
 import thx.Error;
 
-import parsihax.ParseResult;
+import Parsihax;
 
 class ParseError extends Error {
   public var input(default, null) : String;
@@ -20,8 +20,8 @@ class ParseError extends Error {
     this.expected = expected;
   }
 
-  public static function fromParseResult<T>(input : String, parseResult : ParseResult<T>) : ParseError {
-    var formatted = parsihax.ParseUtil.formatError(parseResult, input);
+  public static function fromParseResult<T>(input : String, parseResult : Result<T>) : ParseError {
+    var formatted = Parsihax.formatError(parseResult, input);
     return new ParseError(
       input,
       parseResult.index,
