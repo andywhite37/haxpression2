@@ -31,6 +31,9 @@ class TestExprParser {
       variableNameRegexp: ~/[a-z][a-z0-9]*(?:!?[a-z0-9]+)?/i,
       functionNameRegexp: ~/[a-z]+/i,
       binOps: [
+        { operator: "+", precedence: 1 },
+        { operator: "++", precedence: 1 },
+        { operator: "*", precedence: 2 },
       ],
       unOps: {
         pre: [
@@ -84,12 +87,37 @@ class TestExprParser {
     assertError("asn!sales x");
   }
 
+  public function testFunc() {
+    assertExpr("TEST()",
+      EFunc("TEST", [], meta(0, 1, 1))
+    );
+
+    assertExpr(" TEST (   ) ",
+      EFunc("TEST", [], meta(1, 1, 2))
+    );
+
+    assertExpr("TEST(1, true)",
+      EFunc("TEST", [
+        ELit(VInt(1), meta(5, 1, 6)),
+        ELit(VBool(true), meta(8, 1, 9))
+      ], meta(0, 1, 1))
+    );
+  }
+
   public function testBinOp() {
     assertExpr("1+2",
       EBinOp("+",
         ELit(VInt(1), meta(0, 1, 1)),
         ELit(VInt(2), meta(2, 1, 3)),
         meta(1, 1, 2)
+      )
+    );
+
+    assertExpr("(1+2)",
+      EBinOp("+",
+        ELit(VInt(1), meta(1, 1, 2)),
+        ELit(VInt(2), meta(3, 1, 4)),
+        meta(2, 1, 3)
       )
     );
 
@@ -100,6 +128,36 @@ class TestExprParser {
         meta(4, 1, 5)
       )
     );
+
+    assertExpr("1 + 2 * 3",
+      EBinOp(
+        "+",
+        ELit(VInt(1), meta(0, 1, 1)),
+        EBinOp(
+          "*",
+          ELit(VInt(2), meta(4, 1, 5)),
+          ELit(VInt(3), meta(8, 1, 9)),
+          meta(6, 1, 7)
+        ),
+        meta(2, 1, 3)
+      )
+    );
+
+/*
+    assertExpr("(1 + 2) * 3",
+      EBinOp(
+        "*",
+        EBinOp(
+          "+",
+          ELit(VInt(1), meta(1, 1, 2)),
+          ELit(VInt(2), meta(5, 1, 6)),
+          meta(3, 1, 4)
+        ),
+        ELit(VInt(3), meta(10, 1, 11)),
+        meta(8, 1, 9)
+      )
+    );
+    */
   }
 
   function assertExpr(input : String, expected : Expr<Value<Float>, ParseMeta>, ?pos : haxe.PosInfos) : Void {
