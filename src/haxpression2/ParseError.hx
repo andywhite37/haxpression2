@@ -7,27 +7,22 @@ import thx.Error;
 
 import Parsihax;
 
-class ParseError extends Error {
+class ParseError<T> extends Error {
   public var input(default, null) : String;
-  public var index(default, null) : Int;
-  public var furthest(default, null) : Int;
-  public var expected(default, null) : Array<String>;
+  public var result(default, null) : Result<T>;
 
-  public function new(input : String, index: Int, furthest: Int, expected: Array<String>, message: String, ?stack: Array<StackItem>, ?pos: PosInfos) {
+  function new(message : String, input : String, result: Result<T>, ?stack: Array<StackItem>, ?pos: PosInfos) {
     super(message, stack, pos);
-    this.index = index;
-    this.furthest = furthest;
-    this.expected = expected;
+    this.input = input;
+    this.result = result;
   }
 
-  public static function fromParseResult<T>(input : String, parseResult : Result<T>) : ParseError {
-    var formatted = Parsihax.formatError(parseResult, input);
+  public static function fromParseResult<T>(input : String, result : Result<T>) : ParseError<T> {
+    var message = Parsihax.formatError(result, input);
     return new ParseError(
+      message,
       input,
-      parseResult.index,
-      parseResult.furthest,
-      parseResult.expected,
-      'Failed to parse expression: $input (index: ${parseResult.index}, furthest: ${parseResult.furthest}): $formatted'
+      result
     );
   }
 

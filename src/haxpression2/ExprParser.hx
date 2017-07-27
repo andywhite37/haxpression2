@@ -15,11 +15,6 @@ import haxpression2.Expr;
 import haxpression2.Value;
 import haxpression2.ValueParser as V;
 
-typedef BinOp = {
-  operator: String,
-  precedence: Int
-}
-
 typedef UnOp = {
   operator : String
 };
@@ -41,7 +36,7 @@ typedef ExprParserOptions<V, N, /*I, F, B,*/ A> = {
 
 typedef ExprParsers<V, A> = {
   //exprParen: Parser<Expr<V, A>>,
-  expr: Parser<Expr<V, A>>
+  expr: Parser<AnnotatedExpr<V, A>>
 };
 
 class ExprParser {
@@ -49,19 +44,20 @@ class ExprParser {
   public static function create<V, N, A>(options: ExprParserOptions<V, N, A>) : ExprParsers<V, A> {
     var valueParser = ValueParser.create(options).value;
     var meta = options.meta;
+    var ae = AnnotatedExpr.new;
 
     // Pre-declare for recursive/lazy use
-    var expr : Parser<Expr<V, A>>;
+    var expr : Parser<AnnotatedExpr<V, A>>;
 
-    var exprLit : Parser<Expr<V, A>> = index().flatMap(index ->
-      valueParser.map(v -> ELit(options.convertValue(v), meta(index)))
+    var exprLit : Parser<AnnotatedExpr<V, A>> = index().flatMap(index ->
+      valueParser.map(v -> ae(ELit(options.convertValue(v)), meta(index)))
     );
 
-    var exprVar : Parser<Expr<V, A>> = index().flatMap(index ->
-      options.variableNameRegexp.regexp().map(v -> EVar(v, meta(index)))
+    var exprVar : Parser<AnnotatedExpr<V, A>> = index().flatMap(index ->
+      options.variableNameRegexp.regexp().map(v -> ae(EVar(v), meta(index)))
     );
 
-    var exprFunc : Parser<Expr<V, A>> = index().flatMap(index ->
+    var exprFunc : Parser<AnnotatedExpr<V, A>> = index().flatMap(index ->
       options.functionNameRegexp.regexp()
         .flatMap(functionName ->
           C.ows
@@ -69,11 +65,11 @@ class ExprParser {
             .skip(C.ows)
             .then(sepBy(expr, C.ows.then(string(",")).skip(C.ows)))
             .skip(string(")"))
-            .map(args -> EFunc(functionName, args, meta(index)))
+            .map(args -> ae(EFunc(functionName, args), meta(index)))
         )
     );
 
-    var exprParen : Parser<Expr<V, A>> = index().flatMap(index ->
+    var exprParen : Parser<AnnotatedExpr<V, A>> = index().flatMap(index ->
       string("(")
         .skip(C.ows)
         .then(expr)
@@ -81,12 +77,13 @@ class ExprParser {
         .skip(string(")"))
     );
 
-    var baseTerm : Parser<Expr<V, A>> =
+    var baseTerm : Parser<AnnotatedExpr<V, A>> =
       C.ows
         .then(choice([exprParen, exprFunc, exprLit, exprVar]))
         .skip(C.ows);
 
-    var binOps : Array<Parser<Expr<V,A> -> Expr<V,A> -> Expr<V, A>>> =
+    // Create binary operator parsers
+    var binOps : Array<Parser<AnnotatedExprBinOp<V, A>>> =
       options.binOps
         .order(function(a : BinOp, b : BinOp) : Int {
           return if (a.precedence == b.precedence) {
@@ -97,17 +94,18 @@ class ExprParser {
             b.precedence - a.precedence;
           }
         })
-        .map(function(binOp : BinOp) : Parser<Expr<V,A> -> Expr<V, A> -> Expr<V, A>> {
+        .map(function(binOp : BinOp) : Parser<AnnotatedExprBinOp<V, A>> {
           //trace(binOp.operator);
           return index().flatMap(index ->
             C.ows
               .then(string(binOp.operator))
-              .map(op -> (left, right) -> EBinOp(op, left, right, meta(index)))
+              .map(op -> (left, right) -> ae(EBinOp(op, left, right), meta(index)))
           );
         });
 
+    // create the parser chain with highest precedence bin op parsers down to base terms
     expr = lazy(() ->
-      binOps.reduce(function(term : Parser<Expr<V, A>>, binOp : Parser<Expr<V, A> -> Expr<V, A> -> Expr<V, A>>) {
+      binOps.reduce(function(term : Parser<AnnotatedExpr<V, A>>, binOp : Parser<AnnotatedExprBinOp<V, A>>) {
         return term.chainl1(binOp);
       }, baseTerm)
     );
@@ -118,8 +116,8 @@ class ExprParser {
     };
   }
 
-  public static function parse<V, N, A>(input : String, options : ExprParserOptions<V, N, A>) : Either<ParseError, Expr<V, A>> {
-    var parseResult : Result<Expr<V, A>> = create(options).expr.skip(eof()).apply(input);
+  public static function parse<V, N, A>(input : String, options : ExprParserOptions<V, N, A>) : Either<ParseError<AnnotatedExpr<V, A>>, AnnotatedExpr<V, A>> {
+    var parseResult : Result<AnnotatedExpr<V, A>> = create(options).expr.skip(eof()).apply(input);
     return if (parseResult.status) {
       Right(parseResult.value);
     } else {

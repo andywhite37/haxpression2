@@ -36,7 +36,7 @@ class ValueParser {
     };
   }
 
-  public static function parse<N>(input : String, options: ValueParserOptions<N>) : Either<ParseError, Value<N>> {
+  public static function parse<N>(input : String, options: ValueParserOptions<N>) : Either<ParseError<Value<N>>, Value<N>> {
     var parseResult = create(options).value.skip(eof()).apply(input);
     return if (parseResult.status) {
       Right(parseResult.value);

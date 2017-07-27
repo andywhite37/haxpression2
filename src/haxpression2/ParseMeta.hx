@@ -13,6 +13,10 @@ class ParseMeta {
     return new ParseMeta({ offset: offset, line: line, column: column });
   }
 
+  public function toString() {
+    return '[o:${index.offset}, l:${index.line}, c:${index.column}]';
+  }
+
 /*
   public static function fromIndex(index : Index) : ParseMeta {
     return new ParseMeta(index);

@@ -8,6 +8,15 @@ enum Value<N> {
 }
 
 class Values {
+  public static function toString<N>(value : Value<N>, nToString : N -> String) : String {
+    return switch value {
+      case VInt(v) : Std.string(v);
+      case VNum(v) : nToString(v);
+      case VStr(v) : '"$v"';
+      case VBool(v) : v ? "true" : "false";
+    }
+  }
+
   public static function int<N>(v : Int) : Value<N> {
     return VInt(v);
   }
