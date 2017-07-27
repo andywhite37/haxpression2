@@ -86,19 +86,13 @@ class ExprParser {
     var binOps : Array<Parser<AnnotatedExprBinOp<V, A>>> =
       options.binOps
         .order(function(a : BinOp, b : BinOp) : Int {
-          return if (a.precedence == b.precedence) {
-            // If precedence is equal, do the longer-named operators first
-            b.operator.length - a.operator.length;
-          } else {
-            // Order by precedence (higher to lower)
-            b.precedence - a.precedence;
-          }
+          return b.precedence - a.precedence;
         })
         .map(function(binOp : BinOp) : Parser<AnnotatedExprBinOp<V, A>> {
           //trace(binOp.operator);
           return index().flatMap(index ->
             C.ows
-              .then(string(binOp.operator))
+              .then(regexp(binOp.operatorRegexp))
               .map(op -> (left, right) -> ae(EBinOp(op, left, right), meta(index)))
           );
         });
