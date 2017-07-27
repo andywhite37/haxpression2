@@ -24,9 +24,11 @@ typedef UnOp = {
   operator : String
 };
 
-typedef ExprParserOptions<V, N, A> = {
+typedef ExprParserOptions<V, N, /*I, F, B,*/ A> = {
   variableNameRegexp: EReg,
+  //convertVariable: String -> V,
   functionNameRegexp: EReg,
+  //functions: Map<String, F>,
   convertFloat: Float -> N,
   convertValue: Value<N> -> V,
   binOps: Array<BinOp>,
@@ -38,7 +40,7 @@ typedef ExprParserOptions<V, N, A> = {
 };
 
 typedef ExprParsers<V, A> = {
-  exprParen: Parser<Expr<V, A>>,
+  //exprParen: Parser<Expr<V, A>>,
   expr: Parser<Expr<V, A>>
 };
 
@@ -84,21 +86,6 @@ class ExprParser {
         .then(choice([exprParen, exprFunc, exprLit, exprVar]))
         .skip(C.ows);
 
-    // var mulOp : Parser<Expr<V, A> -> Expr<V, A> -> Expr<V, A>> = index().flatMap(index ->
-    //    C.ows
-    //     .then(regexp(~/\*/).map(op -> (l, r) -> EBinOp(op, l, r, meta(index))))
-    //     .skip(C.ows)
-    // );
-
-    // var addOp : Parser<Expr<V, A> -> Expr<V, A> -> Expr<V, A>> = index().flatMap(index ->
-    //    C.ows
-    //     .then(regexp(~/\+/).map(op -> (l, r) -> EBinOp(op, l, r, meta(index))))
-    //     .skip(C.ows)
-    // );
-
-    // // in order of precedence (higher to lower)
-    // var binOps : Array<Parser<Expr<V,A> -> Expr<V,A> -> Expr<V,A>>> = [mulOp, addOp];
-
     var binOps : Array<Parser<Expr<V,A> -> Expr<V,A> -> Expr<V, A>>> =
       options.binOps
         .order(function(a : BinOp, b : BinOp) : Int {
@@ -126,7 +113,7 @@ class ExprParser {
     );
 
     return {
-      exprParen: exprParen,
+      //exprParen: exprParen,
       expr: expr
     };
   }
