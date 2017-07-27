@@ -11,6 +11,7 @@ using Parsihax;
 
 import haxpression2.CoreParser as C;
 using haxpression2.Expr;
+import haxpression2.Expr.AnnotatedExpr.ae;
 import haxpression2.ExprParser;
 import haxpression2.ParseMeta;
 import haxpression2.ParseMeta.meta;
@@ -23,28 +24,7 @@ class TestExprParser {
   public function new() {}
 
   public function setup() {
-    exprParser = ExprParser.create(getOptions()).expr;
-  }
-
-  public static function getOptions() : ExprParserOptions<Value<Float>, Float, ParseMeta> {
-    return {
-      variableNameRegexp: ~/[a-z][a-z0-9]*(?:!?[a-z0-9]+)?/i,
-      functionNameRegexp: ~/[a-z]+/i,
-      binOps: BinOp.getStandardBinOps(),
-      unOps: {
-        pre: [
-        ],
-        post: [
-        ]
-      },
-      convertFloat: thx.Functions.identity,
-      convertValue: thx.Functions.identity,
-      meta: ParseMeta.new
-    };
-  }
-
-  function ae<V, A>(expr : Expr<V, A>, a : A) : AnnotatedExpr<V, A> {
-    return new AnnotatedExpr(expr, a);
+    exprParser = ExprParser.create(TestHelper.getExprParserOptions()).expr;
   }
 
   public function testWhitespaceErrors() {
@@ -53,6 +33,9 @@ class TestExprParser {
     assertError("   ");
     assertError("\t");
     assertError("\t ");
+    assertError("()");
+    assertError("( )");
+    assertError(",");
   }
 
   public function testLitNum() {
@@ -121,7 +104,9 @@ class TestExprParser {
 
   public function testBinOp() {
     assertExpr("1+2",
-      EBinOp("+",
+      EBinOp(
+        "+",
+        6,
         ae(ELit(VInt(1)), meta(0, 1, 1)),
         ae(ELit(VInt(2)), meta(2, 1, 3))
       ),
@@ -129,7 +114,9 @@ class TestExprParser {
     );
 
     assertExpr("(1+2)",
-      EBinOp("+",
+      EBinOp(
+        "+",
+        6,
         ae(ELit(VInt(1)), meta(1, 1, 2)),
         ae(ELit(VInt(2)), meta(3, 1, 4))
       ),
@@ -137,7 +124,9 @@ class TestExprParser {
     );
 
     assertExpr(" 1  + 2  ",
-      EBinOp("+",
+      EBinOp(
+        "+",
+        6,
         ae(ELit(VInt(1)), meta(1, 1, 2)),
         ae(ELit(VInt(2)), meta(6, 1, 7))
       ),
@@ -147,10 +136,12 @@ class TestExprParser {
     assertExpr("1 + 2 * 3",
       EBinOp(
         "+",
+        6,
         ae(ELit(VInt(1)), meta(0, 1, 1)),
         ae(
           EBinOp(
             "*",
+            7,
             ae(ELit(VInt(2)), meta(4, 1, 5)),
             ae(ELit(VInt(3)), meta(8, 1, 9))
           ),
@@ -163,9 +154,11 @@ class TestExprParser {
     assertExpr("(1 + 2) * 3",
       EBinOp(
         "*",
+        7,
         ae(
           EBinOp(
             "+",
+            6,
             ae(ELit(VInt(1)), meta(1, 1, 2)),
             ae(ELit(VInt(2)), meta(5, 1, 6))
           ),
@@ -182,14 +175,17 @@ class TestExprParser {
     assertExpr("(1 + (2 + (3 + 4)))",
       EBinOp(
         "+",
+        6,
         ae(ELit(VInt(1)), meta(1, 1, 2)),
         ae(
           EBinOp(
             "+",
+            6,
             ae(ELit(VInt(2)), meta(6, 1, 7)),
             ae(
               EBinOp(
                 "+",
+                6,
                 ae(ELit(VInt(3)), meta(11, 1, 12)),
                 ae(ELit(VInt(4)), meta(15, 1, 16))
               ),
@@ -204,7 +200,7 @@ class TestExprParser {
   }
 
   function assertExpr(input : String, expected : Expr<Value<Float>, ParseMeta>, expectedMeta: ParseMeta, ?log : Bool, ?pos : haxe.PosInfos) : Void {
-    switch ExprParser.parse(input, getOptions()) {
+    switch ExprParser.parse(input, TestHelper.getExprParserOptions()) {
       case Left(parseError) : Assert.fail(parseError.toString(), pos);
       case Right(actual) :
         if (log) {
@@ -229,7 +225,7 @@ class TestExprParser {
   */
 
   function assertError(input : String, ?pos : haxe.PosInfos) : Void {
-    switch ExprParser.parse(input, getOptions()) {
+    switch ExprParser.parse(input, TestHelper.getExprParserOptions()) {
       case Left(parseError) : Assert.pass(pos);
       case Right(_) : Assert.fail('$input should not have parsed', pos);
     };

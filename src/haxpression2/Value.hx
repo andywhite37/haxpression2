@@ -1,5 +1,6 @@
 package haxpression2;
 
+// N type arg allows for storing numbers in any type that can be converted to from a Float (e.g. thx.Decimal)
 enum Value<N> {
   VInt(value : Int);
   VNum(value : N);

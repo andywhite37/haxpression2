@@ -2,28 +2,17 @@ package haxpression2;
 
 using thx.Arrays;
 import thx.Either;
-using thx.Strings;
-import thx.Unit;
 
 import Parsihax.*;
 using Parsihax;
-//import Parsihax.Parser;
-//import Parsihax.ParseResult;
 
-import haxpression2.CoreParser as C;
+import haxpression2.CoreParser.ows;
 import haxpression2.Expr;
 import haxpression2.Value;
-import haxpression2.ValueParser as V;
 
-typedef UnOp = {
-  operator : String
-};
-
-typedef ExprParserOptions<V, N, /*I, F, B,*/ A> = {
+typedef ExprParserOptions<V, N, A> = {
   variableNameRegexp: EReg,
-  //convertVariable: String -> V,
   functionNameRegexp: EReg,
-  //functions: Map<String, F>,
   convertFloat: Float -> N,
   convertValue: Value<N> -> V,
   binOps: Array<BinOp>,
@@ -31,82 +20,103 @@ typedef ExprParserOptions<V, N, /*I, F, B,*/ A> = {
     pre: Array<UnOp>,
     post: Array<UnOp>
   },
-  meta: Index -> A
+  annotate: Index -> A
 };
 
 typedef ExprParsers<V, A> = {
-  //exprParen: Parser<Expr<V, A>>,
-  expr: Parser<AnnotatedExpr<V, A>>
+  expr: Parser<AnnotatedExpr<V, A>>,
+  // Expose internal parsers for convenience
+  _internal: {
+    exprLit: Parser<AnnotatedExpr<V, A>>,
+    exprVar: Parser<AnnotatedExpr<V, A>>,
+    exprFunc: Parser<AnnotatedExpr<V, A>>,
+    exprParen: Parser<AnnotatedExpr<V, A>>,
+  }
 };
 
 class ExprParser {
-
+  /**
+   *  Creates an instance of an expression parser
+   *
+   *  @param options -
+   *  @return ExprParsers<V, A>
+   */
   public static function create<V, N, A>(options: ExprParserOptions<V, N, A>) : ExprParsers<V, A> {
     var valueParser = ValueParser.create(options).value;
-    var meta = options.meta;
+    var meta = options.annotate;
     var ae = AnnotatedExpr.new;
 
-    // Pre-declare for recursive/lazy use
+    // Pre-declare main parser for recursive/lazy use
     var expr : Parser<AnnotatedExpr<V, A>>;
 
+    // Parser for expression literal (value)
     var exprLit : Parser<AnnotatedExpr<V, A>> = index().flatMap(index ->
       valueParser.map(v -> ae(ELit(options.convertValue(v)), meta(index)))
     );
 
+    // Parser for expression variable
     var exprVar : Parser<AnnotatedExpr<V, A>> = index().flatMap(index ->
       options.variableNameRegexp.regexp().map(v -> ae(EVar(v), meta(index)))
     );
 
+    // Parser for expression function
     var exprFunc : Parser<AnnotatedExpr<V, A>> = index().flatMap(index ->
       options.functionNameRegexp.regexp()
         .flatMap(functionName ->
-          C.ows
+          ows
             .skip(string("("))
-            .skip(C.ows)
-            .then(sepBy(expr, C.ows.then(string(",")).skip(C.ows)))
+            .skip(ows)
+            .then(sepBy(expr, ows.then(string(",")).skip(ows)))
             .skip(string(")"))
             .map(args -> ae(EFunc(functionName, args), meta(index)))
         )
     );
 
+    // Parser for parenthesized expressions
     var exprParen : Parser<AnnotatedExpr<V, A>> = index().flatMap(index ->
       string("(")
-        .skip(C.ows)
+        .skip(ows)
         .then(expr)
-        .skip(C.ows)
+        .skip(ows)
         .skip(string(")"))
     );
 
-    var baseTerm : Parser<AnnotatedExpr<V, A>> =
-      C.ows
+    // Base case for parsing expression
+    var exprBaseTerm : Parser<AnnotatedExpr<V, A>> =
+      ows
         .then(choice([exprParen, exprFunc, exprLit, exprVar]))
-        .skip(C.ows);
+        .skip(ows);
 
-    // Create binary operator parsers
-    var binOps : Array<Parser<AnnotatedExprBinOp<V, A>>> =
+    // Create binary operator parsers (these parse the operator and the right-side expression)
+    var exprBinOps : Array<Parser<AnnotatedExprBinOp<V, A>>> =
       options.binOps
+        // Order by operator precedence descening (higher to lower)
         .order(function(a : BinOp, b : BinOp) : Int {
           return b.precedence - a.precedence;
         })
         .map(function(binOp : BinOp) : Parser<AnnotatedExprBinOp<V, A>> {
-          //trace(binOp.operator);
           return index().flatMap(index ->
-            C.ows
+            ows
               .then(regexp(binOp.operatorRegexp))
-              .map(op -> (left, right) -> ae(EBinOp(op, left, right), meta(index)))
+              .map(operatorString -> (left, right) -> ae(EBinOp(operatorString, binOp.precedence, left, right), meta(index)))
           );
         });
 
-    // create the parser chain with highest precedence bin op parsers down to base terms
+    // Add binary op parsers in order of precedence
     expr = lazy(() ->
-      binOps.reduce(function(term : Parser<AnnotatedExpr<V, A>>, binOp : Parser<AnnotatedExprBinOp<V, A>>) {
+      exprBinOps.reduce(function(term : Parser<AnnotatedExpr<V, A>>, binOp : Parser<AnnotatedExprBinOp<V, A>>) {
         return term.chainl1(binOp);
-      }, baseTerm)
+      }, exprBaseTerm)
     );
 
     return {
-      //exprParen: exprParen,
-      expr: expr
+      expr: expr,
+      _internal: {
+        exprLit: exprLit,
+        exprVar: exprVar,
+        exprFunc: exprFunc,
+        exprParen: exprParen,
+      }
     };
   }
 

@@ -11,8 +11,8 @@ class BinOp {
 
   public static function getStandardBinOps() : Array<BinOp> {
     return [
-      new BinOp(~/\+|-/, 6),
-      new BinOp(~/\*|\//, 7),
+      new BinOp(~/\+|-/, 6), // + or -
+      new BinOp(~/\*|\//, 7), // * or /
     ];
   }
 }

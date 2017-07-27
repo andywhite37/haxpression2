@@ -13,11 +13,13 @@ typedef ValueParserOptions<N> = {
 };
 
 typedef ValueParsers<N> = {
-  valueNum: Parser<Value<N>>,
-  valueInt: Parser<Value<N>>,
-  valueStr: Parser<Value<N>>,
-  valueBool: Parser<Value<N>>,
-  value: Parser<Value<N>>
+  value: Parser<Value<N>>,
+  _internal: {
+    valueNum: Parser<Value<N>>,
+    valueInt: Parser<Value<N>>,
+    valueStr: Parser<Value<N>>,
+    valueBool: Parser<Value<N>>,
+  }
 };
 
 class ValueParser {
@@ -28,11 +30,13 @@ class ValueParser {
     var valueBool = C.bool.map(VBool);
     var value = choice([valueNum, valueInt, valueStr, valueBool]);
     return {
-      valueNum: valueNum,
-      valueInt: valueInt,
-      valueStr: valueStr,
-      valueBool: valueBool,
-      value: value
+      value: value,
+      _internal: {
+        valueNum: valueNum,
+        valueInt: valueInt,
+        valueStr: valueStr,
+        valueBool: valueBool,
+      }
     };
   }
 
