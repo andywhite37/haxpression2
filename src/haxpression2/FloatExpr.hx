@@ -7,16 +7,78 @@ import thx.Nel;
 import thx.Validation;
 import thx.Validation.*;
 
+import haxpression2.BinOp;
 using haxpression2.Expr;
 import haxpression2.ExprParser;
+import haxpression2.UnOp;
 using haxpression2.Value;
 
+typedef FloatExpr = Expr<Value<Float>, ParseMeta>;
 typedef FloatAnnotatedExpr = AnnotatedExpr<Value<Float>, ParseMeta>;
 typedef FloatExprParseResult = Either<ParseError<FloatAnnotatedExpr>, FloatAnnotatedExpr>;
 typedef FloatExprRoundTripResult = Either<ParseError<FloatAnnotatedExpr>, String>;
 typedef FloatExprEvalResult = VNel<String, Value<Float>>; //Either<ParseError<FloatAnnotatedExpr>, String>;
 
-class FloatExpr {
+class FloatExprs {
+  // https://www.haskell.org/onlinereport/haskell2010/haskellch4.html#x10-820004.4.2
+  public static function getStandardBinOps() : Array<BinOp> {
+    return [
+      new BinOp(~/\*|\//, 7),           // * /
+      new BinOp(~/\+|-/, 6),            // + -
+      new BinOp(~/==|!=|<=|<|>=|>/, 4), // == != < <= > >=
+      new BinOp(~/&&/, 3),              // &&
+      new BinOp(~/\|\|/, 2)            // ||
+    ];
+  }
+
+  public static function getStandardEvalBinOps() : Map<String, EvalBinOp<Value<Float>>> {
+    return [
+      "*" => mul,
+      "/" => div,
+      "+" => add,
+      "-" => sub,
+      //"==" => eq,
+      //"!=" => neq,
+      //"<" => lt,
+      //"<=" => lte,
+      //">" => gt,
+      //">=" => gte,
+      "&&" => and,
+      "||" => or
+    ];
+  }
+
+  public static function getStandardUnOps() : { pre: Array<UnOp>, post: Array<UnOp> } {
+    return {
+      pre: [
+        // TODO: I don't think the precedence of these really has any impact
+        new UnOp(~/-/, 2),
+        new UnOp(~/~/, 1),
+      ],
+      post: [
+      ]
+    };
+  }
+
+  public static function getStandardEvalUnOps() : {
+    pre: Map<String, EvalUnOp<Value<Float>>>,
+    post: Map<String, EvalUnOp<Value<Float>>>
+  } {
+    return {
+      pre: [
+        "-" => negate,
+        "~" => not
+      ],
+      post: new Map()
+    };
+  }
+
+  public static function getStandardEvalFunctions() : Map<String, EvalFunc<Value<Float>>> {
+    return [
+      "sum" => sum
+    ];
+  }
+
   public static function valueToString(value : Value<Float>) : String {
     return value.toString(Std.string);
   }

@@ -1,5 +1,3 @@
-package haxpression2;
-
 using thx.Arrays;
 import thx.Either;
 using thx.Eithers;
@@ -14,7 +12,9 @@ import haxpression2.BinOp;
 using haxpression2.Expr;
 import haxpression2.ExprParser;
 import haxpression2.FloatExpr;
+import haxpression2.ParseError;
 import haxpression2.ParseMeta;
+import haxpression2.UnOp;
 using haxpression2.Value;
 
 class TestHelper {
@@ -22,8 +22,8 @@ class TestHelper {
     return {
       variableNameRegexp: ~/[a-z][a-z0-9]*(?:!?[a-z0-9]+)?/i,
       functionNameRegexp: ~/[a-z]+/i,
-      binOps: BinOp.getStandardBinOps(),
-      unOps: UnOp.getStandardUnOps(),
+      binOps: FloatExprs.getStandardBinOps(),
+      unOps: FloatExprs.getStandardUnOps(),
       convertFloat: thx.Functions.identity,
       convertValue: thx.Functions.identity,
       annotate: ParseMeta.new
@@ -40,26 +40,9 @@ class TestHelper {
         "y" => Values.int(-10),
         "z" => Values.int(100)
       ],
-      functions: [
-        "sum" => FloatExpr.sum
-      ],
-      unOps: {
-        pre: [
-          "-" => FloatExpr.negate,
-          //"++" => FloatExpr.increment,
-          //"!" => FloatExpr.not,
-          "~" => FloatExpr.not
-        ],
-        post: new Map()
-      },
-      binOps: [
-        "+" => FloatExpr.add,
-        "-" => FloatExpr.sub,
-        "*" => FloatExpr.mul,
-        "/" => FloatExpr.div,
-        "||" => FloatExpr.or,
-        "&&" => FloatExpr.and
-      ]
+      unOps: FloatExprs.getStandardEvalUnOps(),
+      binOps: FloatExprs.getStandardEvalBinOps(),
+      functions: FloatExprs.getStandardEvalFunctions()
     };
   }
 
@@ -67,8 +50,8 @@ class TestHelper {
     return ExprParser.create(getTestParserOptions()).expr;
   }
 
-  public static function parse(input : String) : Either<ParseError<AnnotatedExpr<Value<Float>, ParseMeta>>, AnnotatedExpr<Value<Float>, ParseMeta>> {
-    return FloatExpr.parse(input, getTestParserOptions());
+  public static function testParse(input : String) : Either<ParseError<AnnotatedExpr<Value<Float>, ParseMeta>>, AnnotatedExpr<Value<Float>, ParseMeta>> {
+    return FloatExprs.parse(input, getTestParserOptions());
   }
 
   public static function assertParse(input : String, expected : AnnotatedExpr<Value<Float>, ParseMeta>, ?log : Bool, ?pos : haxe.PosInfos) : Void {
@@ -104,27 +87,27 @@ class TestHelper {
   }
 
   public static function assertRoundTrip(expected : String, input : String, ?pos : haxe.PosInfos) : Void {
-    switch FloatExpr.roundTrip(input, getTestParserOptions()) {
+    switch FloatExprs.roundTrip(input, getTestParserOptions()) {
       case Left(error) : Assert.fail(error.toString());
       case Right(actual) : Assert.same(expected, actual);
     };
   }
 
-  public static function eval(input : String) : VNel<String, Value<Float>> {
-    return FloatExpr.eval(input, getTestParserOptions(), getTestEvalOptions());
+  public static function testEval(input : String) : VNel<String, Value<Float>> {
+    return FloatExprs.eval(input, getTestParserOptions(), getTestEvalOptions());
   }
 
   public static function assertEval(expected : Value<Float>, input : String, ?pos : haxe.PosInfos) : Void {
-    switch eval(input) {
+    switch testEval(input) {
       case Left(errors) : Assert.fail(errors.toArray().map(err -> err.toString()).join("\n"), pos);
       case Right(actual) : Assert.same(expected, actual, pos);
     };
   }
 
   public static function traceExpr(input : String, ?pos : haxe.PosInfos) : Void {
-    switch parse(input) {
+    switch testParse(input) {
       case Left(error) : trace(error.toString(), pos);
-      case Right(value) : trace(value.toString(FloatExpr.valueToString, a -> a.toString()), pos);
+      case Right(value) : trace(value.toString(FloatExprs.valueToString, a -> a.toString()), pos);
     };
   }
 }

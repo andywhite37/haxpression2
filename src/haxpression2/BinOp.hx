@@ -8,12 +8,4 @@ class BinOp {
     this.operatorRegexp = operator;
     this.precedence = precedence;
   }
-
-  public static function getStandardBinOps() : Array<BinOp> {
-    return [
-      new BinOp(~/\+|-/, 6), // + or -
-      new BinOp(~/\*|\//, 7), // * or /
-      new BinOp(~/\|\||&&/, 8), // || or &&
-    ];
-  }
 }

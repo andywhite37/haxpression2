@@ -1,25 +1,15 @@
 package haxpression2;
 
-using thx.Arrays;
-import thx.Either;
-using thx.Eithers;
-
-import utest.Assert;
-
-import Parsihax.*;
 using Parsihax;
 
-import haxpression2.CoreParser as C;
 using haxpression2.Expr;
 import haxpression2.Expr.AnnotatedExpr.ae;
-import haxpression2.ExprParser;
 import haxpression2.ParseMeta;
 import haxpression2.ParseMeta.meta;
 using haxpression2.Value;
-import haxpression2.ValueParser;
 
-import haxpression2.TestHelper.assertParse;
-import haxpression2.TestHelper.assertParseError;
+import TestHelper.assertParse;
+import TestHelper.assertParseError;
 
 class TestExprParser {
   var exprParser : Parser<AnnotatedExpr<Value<Float>, ParseMeta>>;

@@ -1,21 +1,7 @@
 package haxpression2;
 
-using thx.Arrays;
-import thx.Either;
-using thx.Eithers;
-import thx.Functions.identity;
-import thx.Nel;
-using thx.Validation;
-import thx.Validation.*;
-
-import utest.Assert;
-
-using haxpression2.Expr;
-using haxpression2.Value;
-
-import haxpression2.TestHelper.assertEval;
-import haxpression2.TestHelper.assertRoundTrip;
-import haxpression2.TestHelper.traceExpr;
+import TestHelper.assertEval;
+import TestHelper.assertRoundTrip;
 
 class TestExpr {
   public function new() {}
