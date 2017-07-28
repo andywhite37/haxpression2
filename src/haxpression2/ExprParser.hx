@@ -92,14 +92,15 @@ class ExprParser {
       options.unOps.pre
         .order((a, b) -> b.precedence - a.precedence)
         .map(function(upOp : UnOp) : Parser<AnnotatedExpr<V, A>> {
-          return index().flatMap(index ->
-            ows
-              .then(upOp.operatorRegexp.regexp())
-              .flatMap(function(operatorString: String) {
-                return ows
-                  .then(exprBaseTerm)
-                  .map(ae -> new AnnotatedExpr(EUnOpPre(operatorString, ae), meta(index)));
-              })
+          return ows.then(
+            index().flatMap(index ->
+              upOp.operatorRegexp.regexp()
+                .flatMap(function(operatorString: String) {
+                  return ows
+                    .then(exprBaseTerm)
+                    .map(ae -> new AnnotatedExpr(EUnOpPre(operatorString, ae), meta(index)));
+                })
+            )
           );
         });
 

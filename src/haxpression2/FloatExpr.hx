@@ -11,21 +11,14 @@ using haxpression2.Expr;
 import haxpression2.ExprParser;
 using haxpression2.Value;
 
+typedef FloatAnnotatedExpr = AnnotatedExpr<Value<Float>, ParseMeta>;
+typedef FloatExprParseResult = Either<ParseError<FloatAnnotatedExpr>, FloatAnnotatedExpr>;
+typedef FloatExprRoundTripResult = Either<ParseError<FloatAnnotatedExpr>, String>;
+typedef FloatExprEvalResult = VNel<String, Value<Float>>; //Either<ParseError<FloatAnnotatedExpr>, String>;
+
 class FloatExpr {
   public static function valueToString(value : Value<Float>) : String {
     return value.toString(Std.string);
-  }
-
-  public static function parse(input : String, parserOptions: ExprParserOptions<Value<Float>, Float, ParseMeta>) {
-    return ExprParser.parse(input, parserOptions);
-  }
-
-  public static function eval(input: String, parserOptions: ExprParserOptions<Value<Float>, Float, ParseMeta>, evalOptions: EvalOptions<Value<Float>>) : VNel<String, Value<Float>> {
-    return ExprParser.parse(input, parserOptions)
-      .leftMap(e -> e.toString())
-      .map(ae -> ae.expr)
-      .toVNel()
-      .flatMapV(expr -> Exprs.eval(expr, evalOptions));
   }
 
   public static function toString(expr : Expr<Value<Float>, ParseMeta>) : String {
@@ -34,16 +27,21 @@ class FloatExpr {
     );
   }
 
-  public static function roundTrip(input : String, options: ExprParserOptions<Value<Float>, Float, ParseMeta>) : Either<ParseError<AnnotatedExpr<Value<Float>, ParseMeta>>, String> {
+  public static function parse(input : String, parserOptions: ExprParserOptions<Value<Float>, Float, ParseMeta>) : FloatExprParseResult {
+    return ExprParser.parse(input, parserOptions);
+  }
+
+  public static function roundTrip(input : String, options: ExprParserOptions<Value<Float>, Float, ParseMeta>) : FloatExprRoundTripResult {
     return ExprParser.parse(input, options)
       .map(ae -> toString(ae.expr));
   }
 
-  public static function roundTripOrThrow(input : String, options: ExprParserOptions<Value<Float>, Float, ParseMeta>) : String {
-    return switch roundTrip(input, options) {
-      case Left(error) : throw error;
-      case Right(str) : str;
-    };
+  public static function eval(input: String, parserOptions: ExprParserOptions<Value<Float>, Float, ParseMeta>, evalOptions: EvalOptions<Value<Float>>) : FloatExprEvalResult {
+    return ExprParser.parse(input, parserOptions)
+      .leftMap(e -> e.toString())
+      .map(ae -> ae.expr)
+      .toVNel()
+      .flatMapV(expr -> Exprs.eval(expr, evalOptions));
   }
 
   public static function ensureNumeric(value : Value<Float>) : Either<String, Value<Float>> {

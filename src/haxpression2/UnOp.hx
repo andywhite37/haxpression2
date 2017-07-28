@@ -13,7 +13,7 @@ class UnOp {
     return {
       pre: [
         new UnOp(~/~/, 1),
-        //new UnOp(~/-/, 2)
+        new UnOp(~/-/, 2)
       ],
       post: [
       ]
