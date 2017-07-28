@@ -3,7 +3,6 @@ package haxpression2;
 using thx.Arrays;
 import thx.Either;
 using thx.Eithers;
-import thx.Nel;
 import thx.Validation;
 import thx.Validation.*;
 
@@ -14,7 +13,12 @@ import haxpression2.UnOp;
 using haxpression2.Value;
 
 typedef FloatExpr = Expr<Value<Float>, ParseMeta>;
+typedef FloatExprParserOptions = ExprParserOptions<Value<Float>, Float, ParseMeta>;
 typedef FloatAnnotatedExpr = AnnotatedExpr<Value<Float>, ParseMeta>;
+typedef FloatEvalUnOp = EvalUnOp<Value<Float>>;
+typedef FloatEvalBinOp = EvalBinOp<Value<Float>>;
+typedef FloatEvalFunc = EvalFunc<Value<Float>>;
+typedef FloatEvalOptions = EvalOptions<Value<Float>>;
 typedef FloatExprParseResult = Either<ParseError<FloatAnnotatedExpr>, FloatAnnotatedExpr>;
 typedef FloatExprRoundTripResult = Either<ParseError<FloatAnnotatedExpr>, String>;
 typedef FloatExprEvalResult = VNel<String, Value<Float>>; //Either<ParseError<FloatAnnotatedExpr>, String>;
@@ -37,12 +41,12 @@ class FloatExprs {
       "/" => div,
       "+" => add,
       "-" => sub,
-      //"==" => eq,
-      //"!=" => neq,
-      //"<" => lt,
-      //"<=" => lte,
-      //">" => gt,
-      //">=" => gte,
+      "==" => eq,
+      "!=" => neq,
+      "<" => lt,
+      "<=" => lte,
+      ">" => gt,
+      ">=" => gte,
       "&&" => and,
       "||" => or
     ];
@@ -60,10 +64,7 @@ class FloatExprs {
     };
   }
 
-  public static function getStandardEvalUnOps() : {
-    pre: Map<String, EvalUnOp<Value<Float>>>,
-    post: Map<String, EvalUnOp<Value<Float>>>
-  } {
+  public static function getStandardEvalUnOps() : { pre: Map<String, FloatEvalUnOp>, post: Map<String, FloatEvalUnOp> } {
     return {
       pre: [
         "-" => negate,
@@ -73,7 +74,7 @@ class FloatExprs {
     };
   }
 
-  public static function getStandardEvalFunctions() : Map<String, EvalFunc<Value<Float>>> {
+  public static function getStandardEvalFunctions() : Map<String, FloatEvalFunc> {
     return [
       "sum" => sum
     ];
@@ -83,22 +84,22 @@ class FloatExprs {
     return value.toString(Std.string);
   }
 
-  public static function toString(expr : Expr<Value<Float>, ParseMeta>) : String {
+  public static function toString(expr : FloatExpr) : String {
     return expr.toString(
       value -> value.toString(Std.string)
     );
   }
 
-  public static function parse(input : String, parserOptions: ExprParserOptions<Value<Float>, Float, ParseMeta>) : FloatExprParseResult {
-    return ExprParser.parse(input, parserOptions);
+  public static function parse(input : String, options: FloatExprParserOptions) : FloatExprParseResult {
+    return ExprParser.parse(input, options);
   }
 
-  public static function roundTrip(input : String, options: ExprParserOptions<Value<Float>, Float, ParseMeta>) : FloatExprRoundTripResult {
+  public static function roundTrip(input : String, options: FloatExprParserOptions) : FloatExprRoundTripResult {
     return ExprParser.parse(input, options)
       .map(ae -> toString(ae.expr));
   }
 
-  public static function eval(input: String, parserOptions: ExprParserOptions<Value<Float>, Float, ParseMeta>, evalOptions: EvalOptions<Value<Float>>) : FloatExprEvalResult {
+  public static function eval(input: String, parserOptions: FloatExprParserOptions, evalOptions: FloatEvalOptions) : FloatExprEvalResult {
     return ExprParser.parse(input, parserOptions)
       .leftMap(e -> e.toString())
       .map(ae -> ae.expr)
@@ -215,6 +216,62 @@ class FloatExprs {
     return switch [l, r] {
       case [VBool(l), VBool(r)] : successNel(VBool(l && r));
       case [l = _, r = _] : failureNel('cannot `and` non-bool values: $l and $r');
+    };
+  }
+
+  public static function eq(l : Value<Float>, r: Value<Float>) : VNel<String, Value<Float>> {
+    return switch [l, r] {
+      case [VInt(l), VInt(r)] : successNel(VBool(l == r));
+      case [VNum(l), VNum(r)] : successNel(VBool(l == r));
+      case [VStr(l), VStr(r)] : successNel(VBool(l == r));
+      case [VBool(l), VBool(r)] : successNel(VBool(l == r));
+      case [l = _, r = _] : failureNel('cannot == values of different types');
+    };
+  }
+
+  public static function neq(l : Value<Float>, r: Value<Float>) : VNel<String, Value<Float>> {
+    return switch [l, r] {
+      case [VInt(l), VInt(r)] : successNel(VBool(l != r));
+      case [VNum(l), VNum(r)] : successNel(VBool(l != r));
+      case [VStr(l), VStr(r)] : successNel(VBool(l != r));
+      case [VBool(l), VBool(r)] : successNel(VBool(l != r));
+      case [l = _, r = _] : failureNel('cannot != values of different types');
+    };
+  }
+
+  public static function lt(l : Value<Float>, r: Value<Float>) : VNel<String, Value<Float>> {
+    return switch [l, r] {
+      case [VInt(l), VInt(r)] : successNel(VBool(l < r));
+      case [VNum(l), VNum(r)] : successNel(VBool(l < r));
+      case [VStr(l), VStr(r)] : successNel(VBool(l < r));
+      case [l = _, r = _] : failureNel('cannot < values of type $l and $r');
+    };
+  }
+
+  public static function lte(l : Value<Float>, r: Value<Float>) : VNel<String, Value<Float>> {
+    return switch [l, r] {
+      case [VInt(l), VInt(r)] : successNel(VBool(l <= r));
+      case [VNum(l), VNum(r)] : successNel(VBool(l <= r));
+      case [VStr(l), VStr(r)] : successNel(VBool(l <= r));
+      case [l = _, r = _] : failureNel('cannot <= values of type $l and $r');
+    };
+  }
+
+  public static function gt(l : Value<Float>, r: Value<Float>) : VNel<String, Value<Float>> {
+    return switch [l, r] {
+      case [VInt(l), VInt(r)] : successNel(VBool(l > r));
+      case [VNum(l), VNum(r)] : successNel(VBool(l > r));
+      case [VStr(l), VStr(r)] : successNel(VBool(l > r));
+      case [l = _, r = _] : failureNel('cannot > values of type $l and $r');
+    };
+  }
+
+  public static function gte(l : Value<Float>, r: Value<Float>) : VNel<String, Value<Float>> {
+    return switch [l, r] {
+      case [VInt(l), VInt(r)] : successNel(VBool(l >= r));
+      case [VNum(l), VNum(r)] : successNel(VBool(l >= r));
+      case [VStr(l), VStr(r)] : successNel(VBool(l >= r));
+      case [l = _, r = _] : failureNel('cannot >= values of type $l and $r');
     };
   }
 
