@@ -18,12 +18,7 @@ class TestHelper {
       variableNameRegexp: ~/[a-z][a-z0-9]*(?:!?[a-z0-9]+)?/i,
       functionNameRegexp: ~/[a-z]+/i,
       binOps: BinOp.getStandardBinOps(),
-      unOps: {
-        pre: [
-        ],
-        post: [
-        ]
-      },
+      unOps: UnOp.getStandardUnOps(),
       convertFloat: thx.Functions.identity,
       convertValue: thx.Functions.identity,
       annotate: ParseMeta.new
@@ -43,13 +38,28 @@ class TestHelper {
       functions: [
         "sum" => FloatExpr.sum
       ],
+      unOps: {
+        pre: [
+          //"-" => FloatExpr.negate,
+          //"++" => FloatExpr.increment,
+          //"!" => FloatExpr.not,
+          "~" => FloatExpr.not
+        ],
+        post: new Map()
+      },
       binOps: [
         "+" => FloatExpr.add,
         "-" => FloatExpr.sub,
         "*" => FloatExpr.mul,
-        "/" => FloatExpr.div
+        "/" => FloatExpr.div,
+        "||" => FloatExpr.or,
+        "&&" => FloatExpr.and
       ]
     };
+  }
+
+  public static function parse(input : String) {
+    return FloatExpr.parse(input, getExprParserOptions());
   }
 
   public static function roundTrip(input : String) {
@@ -58,5 +68,12 @@ class TestHelper {
 
   public static function eval(input : String) {
     return FloatExpr.eval(input, getExprParserOptions(), getEvalOptions());
+  }
+
+  public static function traceExpr(input : String, ?pos : haxe.PosInfos) : Void {
+    switch parse(input) {
+      case Left(error) : trace(error.toString(), pos);
+      case Right(value) : trace(value.toString(FloatExpr.valueToString, a -> a.toString()), pos);
+    };
   }
 }

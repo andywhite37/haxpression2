@@ -20,14 +20,13 @@ class ParseError<T> extends Error {
   public static function fromParseResult<T>(input : String, result : Result<T>) : ParseError<T> {
     var message = Parsihax.formatError(result, input);
     return new ParseError(
-      message,
+      'Failed to parse expression `$input`: $message',
       input,
       result
     );
   }
 
   public override function toString() : String {
-    //return '$message (expected: ${expected.join("\n")})';
     return message;
   }
 }

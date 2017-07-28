@@ -49,17 +49,17 @@ class ExprParser {
     // Pre-declare main parser for recursive/lazy use
     var expr : Parser<AnnotatedExpr<V, A>>;
 
-    // Parser for expression literal (value)
+    // Literal value parser
     var exprLit : Parser<AnnotatedExpr<V, A>> = index().flatMap(index ->
       valueParser.map(v -> ae(ELit(options.convertValue(v)), meta(index)))
     );
 
-    // Parser for expression variable
+    // Variable parser
     var exprVar : Parser<AnnotatedExpr<V, A>> = index().flatMap(index ->
       options.variableNameRegexp.regexp().map(v -> ae(EVar(v), meta(index)))
     );
 
-    // Parser for expression function
+    // Function parser
     var exprFunc : Parser<AnnotatedExpr<V, A>> = index().flatMap(index ->
       options.functionNameRegexp.regexp()
         .flatMap(functionName ->
@@ -72,7 +72,7 @@ class ExprParser {
         )
     );
 
-    // Parser for parenthesized expressions
+    // Parenthesized expression parser
     var exprParen : Parser<AnnotatedExpr<V, A>> = index().flatMap(index ->
       string("(")
         .skip(ows)
@@ -81,19 +81,32 @@ class ExprParser {
         .skip(string(")"))
     );
 
-    // Base case for parsing expression
+    // Base case expression parser
     var exprBaseTerm : Parser<AnnotatedExpr<V, A>> =
       ows
         .then(choice([exprParen, exprFunc, exprLit, exprVar]))
         .skip(ows);
 
-    // Create binary operator parsers (these parse the operator and the right-side expression)
+    // Prefix unary operator parsers
+    var exprUnOpPres : Array<Parser<AnnotatedExpr<V, A>>> =
+      options.unOps.pre
+        .order((a, b) -> b.precedence - a.precedence)
+        .map(function(upOp : UnOp) : Parser<AnnotatedExpr<V, A>> {
+          return index().flatMap(index ->
+            ows
+              .then(upOp.operatorRegexp.regexp())
+              .flatMap(function(operatorString: String) {
+                return ows
+                  .then(exprBaseTerm)
+                  .map(ae -> new AnnotatedExpr(EUnOpPre(operatorString, ae), meta(index)));
+              })
+          );
+        });
+
+    // Binary operator parsers
     var exprBinOps : Array<Parser<AnnotatedExprBinOp<V, A>>> =
       options.binOps
-        // Order by operator precedence descening (higher to lower)
-        .order(function(a : BinOp, b : BinOp) : Int {
-          return b.precedence - a.precedence;
-        })
+        .order((a, b) -> b.precedence - a.precedence) // precedence descending
         .map(function(binOp : BinOp) : Parser<AnnotatedExprBinOp<V, A>> {
           return index().flatMap(index ->
             ows
@@ -102,11 +115,18 @@ class ExprParser {
           );
         });
 
-    // Add binary op parsers in order of precedence
-    expr = lazy(() ->
+    // Prefix unary + base parsers
+    var exprUnOpPre = choice(exprUnOpPres).or(exprBaseTerm);
+
+    // Binary operator parser
+    var exprBinOp =
       exprBinOps.reduce(function(term : Parser<AnnotatedExpr<V, A>>, binOp : Parser<AnnotatedExprBinOp<V, A>>) {
         return term.chainl1(binOp);
-      }, exprBaseTerm)
+      }, exprUnOpPre);
+
+    // Main parser
+    expr = lazy(() ->
+      exprBinOp
     );
 
     return {

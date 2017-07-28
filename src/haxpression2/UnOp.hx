@@ -8,4 +8,15 @@ class UnOp {
     this.operatorRegexp = operatorRegexp;
     this.precedence = precedence;
   }
+
+  public static function getStandardUnOps() : { pre: Array<UnOp>, post: Array<UnOp> } {
+    return {
+      pre: [
+        new UnOp(~/~/, 1),
+        //new UnOp(~/-/, 2)
+      ],
+      post: [
+      ]
+    };
+  }
 }

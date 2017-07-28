@@ -13,6 +13,7 @@ class BinOp {
     return [
       new BinOp(~/\+|-/, 6), // + or -
       new BinOp(~/\*|\//, 7), // * or /
+      new BinOp(~/\|\||&&/, 8), // || or &&
     ];
   }
 }

@@ -17,6 +17,7 @@ class CoreParser {
   static var integerNonZero(default, never) : Parser<Int> = ~/[1-9][0-9]*/.regexp().map(Std.parseInt);
   static var integerNonZeroNeg(default, never) : Parser<Int> = ~/\-[1-9][0-9]*/.regexp().map(Std.parseInt);
   public static var integer(default, never) : Parser<Int> = choice([integerZero, integerNonZero, integerNonZeroNeg]);
+  //public static var integer(default, never) : Parser<Int> = choice([integerZero, integerNonZero]);
 
   // Floats
   static var unsignedFloatWithLeadingDigits(default, never) : Parser<Float> = ~/\d[\d,]*(?:\.\d+)(?:e-?\d+)?/.regexp().map(v -> Std.parseFloat(v.replace(",", "")));
@@ -27,6 +28,7 @@ class CoreParser {
   static var negativeParenFloat(default, never) : Parser<Float> = "(".string().then(ows).then(unsignedFloat).skip(ows).skip(")".string());
   static var negativeFloat(default, never) : Parser<Float> = choice([negativeSignFloat, negativeParenFloat]).map(v -> -v);
   public static var float(default, never) : Parser<Float> = choice([negativeFloat, positiveFloat]);
+  //public static var float(default, never) : Parser<Float> = unsignedFloat;
 
   // Bools
   static var boolTrue(default, never) : Parser<Bool> = ~/true/i.regexp().map(v -> true);

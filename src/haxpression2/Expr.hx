@@ -16,11 +16,12 @@ enum Expr<V, A> {
   ELit(value : V);
   EVar(name : String);
   EFunc(func : String, args : Array<AnnotatedExpr<V, A>>);
-  //EUnOpPre(operator : String, expr : AnnotatedExpr<V, A>);
+  EUnOpPre(operator : String, expr : AnnotatedExpr<V, A>);
   //EUnOpPost(operator : String, expr : AnnotatedExpr<V, A>);
   EBinOp(operator : String, precedence: Int, left : AnnotatedExpr<V, A>, right : AnnotatedExpr<V, A>);
-  //ECond(test : Expr<V, A>, consequent : Expr<V, A>, alternate : Expr<V, A>, a : A);
 }
+
+typedef EvalUnOp<V> = V -> VNel<String, V>;
 
 /**
  * Function for evaluating a binary operator expression (VNel allows for failures)
@@ -38,6 +39,10 @@ typedef EvalFunc<V> = Array<V> -> VNel<String, V>;
  */
 typedef EvalOptions<V> = {
   variables: Map<String, V>,
+  unOps: {
+    pre: Map<String, EvalUnOp<V>>,
+    post: Map<String, EvalUnOp<V>>
+  },
   binOps: Map<String, EvalBinOp<V>>,
   functions: Map<String, EvalFunc<V>>
 };
@@ -62,6 +67,9 @@ class Exprs {
       case EFunc(name, args) :
         var argsStr = args.map(arg -> toString(arg.expr, valueToString)).join(", ");
         '${name}(${argsStr})';
+
+      case EUnOpPre(op, ae) :
+        '${op}${toString(ae.expr, valueToString)}';
 
       case EBinOp(op, prec, left, right) :
         // if a left-side bin op has lower precendence, parenthesize it
@@ -102,6 +110,13 @@ class Exprs {
               .flatMapV(values -> func(values))
         );
 
+      case EUnOpPre(operator, operand) :
+        options.unOps.pre.getOption(operator).cataf(
+          () -> failureNel('no prefix operator was given for operator $operator'),
+          func -> eval(operand.expr, options).flatMapV(func)
+        );
+
+
       case EBinOp(op, prec, left, right) :
         options.binOps.getOption(op).cataf(
           () -> failureNel('no operator definition was given for operator: $op'),
@@ -127,6 +142,7 @@ class Exprs {
       case ELit(v) : ELit(f(v));
       case EVar(name) : EVar(name);
       case EFunc(name, args) : EFunc(name, args.map(arg -> AnnotatedExpr.mapValue(arg, f)));
+      case EUnOpPre(operator, operand) : EUnOpPre(operator, AnnotatedExpr.mapValue(operand, f));
       case EBinOp(op, prec, left, right) : EBinOp(op, prec, AnnotatedExpr.mapValue(left, f), AnnotatedExpr.mapValue(right, f));
     }
   }
@@ -136,6 +152,7 @@ class Exprs {
       case ELit(value) : ELit(value);
       case EVar(name) : EVar(name);
       case EFunc(name, args) : EFunc(name, args.map(arg -> AnnotatedExpr.mapAnnotation(arg, f)));
+      case EUnOpPre(operator, operand) : EUnOpPre(operator, AnnotatedExpr.mapAnnotation(operand, f));
       case EBinOp(op, prec, left, right) : EBinOp(op, prec, AnnotatedExpr.mapAnnotation(left, f), AnnotatedExpr.mapAnnotation(right, f));
     };
   }
@@ -168,6 +185,12 @@ class AnnotatedExpr<V, A> {
 '${Exprs.toString(e, valueToString)}
 $argStrings';
 
+      case e = EUnOpPre(operator, operand) :
+        var operandString = toString(operand, valueToString, annotationToString, depth + 1);
+'${Exprs.toString(e, valueToString)}
+${indent}${operator} ${annotationToString(ae.annotation)}
+${indent}  Operand: $operandString';
+
       case e = EBinOp(op, prec, left, right) :
         var leftString = toString(left, valueToString, annotationToString, depth + 1);
         var rightString = toString(right, valueToString, annotationToString, depth + 1);
@@ -188,3 +211,4 @@ ${indent}  Right: $rightString';
 }
 
 typedef AnnotatedExprBinOp<V, A> = AnnotatedExpr<V, A> -> AnnotatedExpr<V, A> -> AnnotatedExpr<V, A>;
+typedef AnnotatedExprUnOp<V, A> = AnnotatedExpr<V, A> -> AnnotatedExpr<V, A>;
