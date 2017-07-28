@@ -8,23 +8,23 @@ using Parsihax;
 import haxpression2.CoreParser as C;
 import haxpression2.Value;
 
-typedef ValueParserOptions<N> = {
-  convertFloat : Float -> N
+typedef ValueParserOptions<D> = {
+  parseDecimal : String -> D
 };
 
-typedef ValueParsers<N> = {
-  value: Parser<Value<N>>,
+typedef ValueParsers<D> = {
+  value: Parser<Value<D>>,
   _internal: {
-    valueNum: Parser<Value<N>>,
-    valueInt: Parser<Value<N>>,
-    valueStr: Parser<Value<N>>,
-    valueBool: Parser<Value<N>>,
+    valueNum: Parser<Value<D>>,
+    valueInt: Parser<Value<D>>,
+    valueStr: Parser<Value<D>>,
+    valueBool: Parser<Value<D>>,
   }
 };
 
 class ValueParser {
-  public static function create<N>(options: ValueParserOptions<N>) : ValueParsers<N> {
-    var valueNum = C.float.map(options.convertFloat).map(VNum);
+  public static function create<D>(options: ValueParserOptions<D>) : ValueParsers<D> {
+    var valueNum = C.decimalString.map(options.parseDecimal).map(VNum);
     var valueInt = C.integer.map(VInt);
     var valueStr = C.string.map(VStr);
     var valueBool = C.bool.map(VBool);

@@ -10,11 +10,11 @@ import haxpression2.CoreParser.ows;
 import haxpression2.Expr;
 import haxpression2.Value;
 
-typedef ExprParserOptions<V, N, A> = {
+typedef ExprParserOptions<V, D, A> = {
   variableNameRegexp: EReg,
   functionNameRegexp: EReg,
-  convertFloat: Float -> N,
-  convertValue: Value<N> -> V,
+  parseDecimal: String -> D,
+  convertValue: Value<D> -> V,
   binOps: Array<BinOp>,
   unOps: {
     pre: Array<UnOp>,

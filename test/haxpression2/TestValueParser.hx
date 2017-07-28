@@ -23,7 +23,7 @@ class TestValueParser {
 
   function getOptions() : ValueParserOptions<Float> {
     return {
-      convertFloat: thx.Functions.identity
+      parseDecimal: Std.parseFloat
     };
   }
 

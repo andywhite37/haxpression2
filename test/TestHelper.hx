@@ -18,19 +18,19 @@ import haxpression2.UnOp;
 using haxpression2.Value;
 
 class TestHelper {
-  public static function getTestParserOptions() : ExprParserOptions<Value<Float>, Float, ParseMeta> {
+  public static function getTestParserOptions() : FloatExprParserOptions {
     return {
       variableNameRegexp: ~/[a-z][a-z0-9]*(?:!?[a-z0-9]+)?/i,
       functionNameRegexp: ~/[a-z]+/i,
       binOps: FloatExprs.getStandardBinOps(),
       unOps: FloatExprs.getStandardUnOps(),
-      convertFloat: thx.Functions.identity,
+      parseDecimal: Std.parseFloat,
       convertValue: thx.Functions.identity,
       annotate: ParseMeta.new
     };
   }
 
-  public static function getTestEvalOptions() : EvalOptions<Value<Float>> {
+  public static function getTestEvalOptions() : FloatEvalOptions {
     return {
       variables: [
         "a" => Values.int(0),
@@ -65,19 +65,6 @@ class TestHelper {
         Assert.same(expected, actual, pos);
     }
   }
-
-/*
-  function assertLit(input : String, expected : Expr<Value<Float>, ParseMeta>, ?pos : haxe.PosInfos) : Void {
-    switch ExprParser.parse(input, getOptions()) {
-      case Left(parseError) : Assert.fail(parseError.toString(), pos);
-      case Right(actual) : Assert.same(expected, actual);
-    };
-  }
-
-  function assertVar(input : String, name : String, meta : ParseMeta, ?pos : haxe.PosInfos) : Void {
-    assertExpr(input, EVar(name, meta), pos);
-  }
-  */
 
   public static function assertParseError(input : String, ?pos : haxe.PosInfos) : Void {
     switch ExprParser.parse(input, TestHelper.getTestParserOptions()) {

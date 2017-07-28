@@ -19,16 +19,23 @@ class CoreParser {
   public static var integer(default, never) : Parser<Int> = choice([integerZero, integerNonZero, integerNonZeroNeg]);
   //public static var integer(default, never) : Parser<Int> = choice([integerZero, integerNonZero]);
 
-  // Floats
-  static var unsignedFloatWithLeadingDigits(default, never) : Parser<Float> = ~/\d[\d,]*(?:\.\d+)(?:e-?\d+)?/.regexp().map(v -> Std.parseFloat(v.replace(",", "")));
-  static var unsignedFloatWithoutLeadingDigits(default, never) : Parser<Float> = ~/\.\d+(?:e-?\d+)/.regexp().map(Std.parseFloat);
-  static var unsignedFloat(default, never) : Parser<Float> = choice([unsignedFloatWithLeadingDigits, unsignedFloatWithoutLeadingDigits]);
-  static var positiveFloat(default, never) : Parser<Float> = ~/\+?/.regexp().then(ows).then(unsignedFloat);
-  static var negativeSignFloat(default, never) : Parser<Float> = "-".string().then(ows).then(unsignedFloat);
-  static var negativeParenFloat(default, never) : Parser<Float> = "(".string().then(ows).then(unsignedFloat).skip(ows).skip(")".string());
-  static var negativeFloat(default, never) : Parser<Float> = choice([negativeSignFloat, negativeParenFloat]).map(v -> -v);
-  public static var float(default, never) : Parser<Float> = choice([negativeFloat, positiveFloat]);
-  //public static var float(default, never) : Parser<Float> = unsignedFloat;
+  // Decimals (parsed in string format, so the Expr type can parse into the appropriate Float/Decimal type)
+  static var unsignedDecimalWithLeadingDigits(default, never) : Parser<String> = ~/\d[\d,]*(?:\.\d+)(?:e-?\d+)?/.regexp().map(v -> v.replace(",", ""));
+  static var unsignedDecimalWithoutLeadingDigits(default, never) : Parser<String> = ~/\.\d+(?:e-?\d+)/.regexp();
+  static var unsignedDecimal(default, never) : Parser<String> = choice([unsignedDecimalWithLeadingDigits, unsignedDecimalWithoutLeadingDigits]);
+  static var positiveDecimal(default, never) : Parser<String> = ~/\+?/.regexp().then(ows).then(unsignedDecimal);
+  static var negativeSignDecimal(default, never) : Parser<String> = "-".string().then(ows).then(unsignedDecimal);
+  /*
+  static var negativeParenDecimal(default, never) : Parser<String> =
+    "(".string()
+      .then(ows)
+      .then(unsignedDecimal)
+      .skip(ows)
+      .skip(")".string())
+      .map(str -> '-${str.trim().trimCharsLeft("(").trimCharsRight(")")}');
+      */
+  static var negativeDecimal(default, never) : Parser<String> = choice([negativeSignDecimal/*, negativeParenDecimal*/]);
+  public static var decimalString(default, never) : Parser<String> = choice([negativeDecimal, positiveDecimal]);
 
   // Bools
   static var boolTrue(default, never) : Parser<Bool> = ~/true/i.regexp().map(v -> true);
