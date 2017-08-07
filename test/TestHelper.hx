@@ -12,13 +12,14 @@ import haxpression2.BinOp;
 using haxpression2.Expr;
 import haxpression2.ExprParser;
 import haxpression2.FloatExpr;
-import haxpression2.ParseError;
 import haxpression2.ParseMeta;
 import haxpression2.UnOp;
 using haxpression2.Value;
+import haxpression2.error.EvalError;
+import haxpression2.error.ParseError;
 
 class TestHelper {
-  public static function getTestParserOptions() : FloatExprParserOptions {
+  public static function getTestParserOptions() : FloatParserOptions {
     return {
       variableNameRegexp: ~/[a-z][a-z0-9]*(?:!?[a-z0-9]+)?/i,
       functionNameRegexp: ~/[a-z]+/i,
@@ -42,7 +43,8 @@ class TestHelper {
       ],
       unOps: FloatExprs.getStandardEvalUnOps(),
       binOps: FloatExprs.getStandardEvalBinOps(),
-      functions: FloatExprs.getStandardEvalFunctions()
+      functions: FloatExprs.getStandardEvalFunctions(),
+      onError: (error, expr) -> new EvalError(error, expr)
     };
   }
 
@@ -80,12 +82,16 @@ class TestHelper {
     };
   }
 
-  public static function testEval(input : String) : VNel<String, Value<Float>> {
-    return FloatExprs.eval(input, getTestParserOptions(), getTestEvalOptions());
+  public static function testParseEval(input : String) : VNel<String, Value<Float>> {
+    return switch FloatExprs.parseEval(input, getTestParserOptions(), getTestEvalOptions()) {
+      case ParseError(error) : failureNel(error.toString());
+      case EvalError(exprErrors) : failure(exprErrors.map(exprError -> exprError.error.toString()));
+      case Success(value) : successNel(value);
+    };
   }
 
-  public static function assertEval(expected : Value<Float>, input : String, ?pos : haxe.PosInfos) : Void {
-    switch testEval(input) {
+  public static function assertParseEval(expected : Value<Float>, input : String, ?pos : haxe.PosInfos) : Void {
+    switch testParseEval(input) {
       case Left(errors) : Assert.fail(errors.toArray().map(err -> err.toString()).join("\n"), pos);
       case Right(actual) : Assert.same(expected, actual, pos);
     };

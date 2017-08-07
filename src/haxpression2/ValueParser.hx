@@ -7,6 +7,7 @@ using Parsihax;
 
 import haxpression2.CoreParser as C;
 import haxpression2.Value;
+import haxpression2.error.ParseError;
 
 typedef ValueParserOptions<D> = {
   parseDecimal : String -> D

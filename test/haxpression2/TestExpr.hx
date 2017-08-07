@@ -1,6 +1,6 @@
 package haxpression2;
 
-import TestHelper.assertEval;
+import TestHelper.assertParseEval;
 import TestHelper.assertRoundTrip;
 
 class TestExpr {
@@ -23,44 +23,44 @@ class TestExpr {
     assertRoundTrip("1 + x * myFunc(1 * (2 + 3)) / sales", "1+x*myFunc (1 * (2 + 3)) / sales ");
   }
 
-  public function testEvalNumbers() {
-    assertEval(VInt(0), "0");
-    assertEval(VInt(3), "1+2");
-    assertEval(VNum(1 + 2 - 3 * 4 / 5), "1 + 2 - 3 * 4 / 5");
-    assertEval(VNum(1 / 2 * 3 - 4 + 5), "1 / 2 * 3 - 4 + 5");
-    assertEval(VInt(1 + 2 * 3 + 4), "1 + 2 * 3 + 4");
-    assertEval(VInt(1 + 2 * (3 + 4)), "1 + 2 * (3 + 4)");
-    assertEval(VInt((1+2) * (3+4)), "(1 + 2) * (3 + 4)");
-    assertEval(VNum(101.0), "(1 + x + y + z) / b");
-    assertEval(VInt(-2), "1 + -3");
-    assertEval(VInt(-2), "1 + -3");
-    assertEval(VInt(4), "1 - (-3)");
-    assertEval(VInt(4), "1 - -3");
-    assertEval(VInt(2), "-1 - -3");
-    assertEval(VInt(8), "10 - (-1 - -3)");
-    assertEval(VInt(-2), "-(-1 - -3)");
+  public function testParseEvalNumbers() {
+    assertParseEval(VInt(0), "0");
+    assertParseEval(VInt(3), "1+2");
+    assertParseEval(VNum(1 + 2 - 3 * 4 / 5), "1 + 2 - 3 * 4 / 5");
+    assertParseEval(VNum(1 / 2 * 3 - 4 + 5), "1 / 2 * 3 - 4 + 5");
+    assertParseEval(VInt(1 + 2 * 3 + 4), "1 + 2 * 3 + 4");
+    assertParseEval(VInt(1 + 2 * (3 + 4)), "1 + 2 * (3 + 4)");
+    assertParseEval(VInt((1+2) * (3+4)), "(1 + 2) * (3 + 4)");
+    assertParseEval(VNum(101.0), "(1 + x + y + z) / b");
+    assertParseEval(VInt(-2), "1 + -3");
+    assertParseEval(VInt(-2), "1 + -3");
+    assertParseEval(VInt(4), "1 - (-3)");
+    assertParseEval(VInt(4), "1 - -3");
+    assertParseEval(VInt(2), "-1 - -3");
+    assertParseEval(VInt(8), "10 - (-1 - -3)");
+    assertParseEval(VInt(-2), "-(-1 - -3)");
   }
 
-  public function testEvalBools() {
-    assertEval(VBool(true), "true");
-    assertEval(VBool(false), "false");
-    assertEval(VBool(false), "~true");
-    assertEval(VBool(true), "~false");
-    assertEval(VBool(true), "true || true");
-    assertEval(VBool(true), "true || false");
-    assertEval(VBool(true), "false || true");
-    assertEval(VBool(false), "false || false");
-    assertEval(VBool(true), "true || ~true");
-    assertEval(VBool(true), "true || ~false");
-    assertEval(VBool(false), "false || ~true");
-    assertEval(VBool(true), "false || ~false");
-    assertEval(VBool(true), "~true || true");
-    assertEval(VBool(false), "~true || false");
-    assertEval(VBool(true), "~false || true");
-    assertEval(VBool(true), "~false || false");
-    assertEval(VBool(false), "~(true || true)");
-    assertEval(VBool(false), "~(true || false)");
-    assertEval(VBool(false), "~(false || true)");
-    assertEval(VBool(true), "~(false || false)");
+  public function testParseEvalBools() {
+    assertParseEval(VBool(true), "true");
+    assertParseEval(VBool(false), "false");
+    assertParseEval(VBool(false), "~true");
+    assertParseEval(VBool(true), "~false");
+    assertParseEval(VBool(true), "true || true");
+    assertParseEval(VBool(true), "true || false");
+    assertParseEval(VBool(true), "false || true");
+    assertParseEval(VBool(false), "false || false");
+    assertParseEval(VBool(true), "true || ~true");
+    assertParseEval(VBool(true), "true || ~false");
+    assertParseEval(VBool(false), "false || ~true");
+    assertParseEval(VBool(true), "false || ~false");
+    assertParseEval(VBool(true), "~true || true");
+    assertParseEval(VBool(false), "~true || false");
+    assertParseEval(VBool(true), "~false || true");
+    assertParseEval(VBool(true), "~false || false");
+    assertParseEval(VBool(false), "~(true || true)");
+    assertParseEval(VBool(false), "~(true || false)");
+    assertParseEval(VBool(false), "~(false || true)");
+    assertParseEval(VBool(true), "~(false || false)");
   }
 }

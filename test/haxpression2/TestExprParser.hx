@@ -45,6 +45,7 @@ class TestExprParser {
       ae(
         EUnOpPre(
           "-",
+          2,
           ae(
             ELit(VInt(1)),
             meta(2, 1, 3)

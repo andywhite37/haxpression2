@@ -9,6 +9,7 @@ using Parsihax;
 import haxpression2.CoreParser.ows;
 import haxpression2.Expr;
 import haxpression2.Value;
+import haxpression2.error.ParseError;
 
 typedef ExprParserOptions<V, D, A> = {
   variableNameRegexp: EReg,
@@ -91,14 +92,14 @@ class ExprParser {
     var exprUnOpPres : Array<Parser<AnnotatedExpr<V, A>>> =
       options.unOps.pre
         .order((a, b) -> b.precedence - a.precedence)
-        .map(function(upOp : UnOp) : Parser<AnnotatedExpr<V, A>> {
+        .map(function(unOp : UnOp) : Parser<AnnotatedExpr<V, A>> {
           return ows.then(
             index().flatMap(index ->
-              upOp.operatorRegexp.regexp()
+              unOp.operatorRegexp.regexp()
                 .flatMap(function(operatorString: String) {
                   return ows
                     .then(exprBaseTerm)
-                    .map(ae -> new AnnotatedExpr(EUnOpPre(operatorString, ae), meta(index)));
+                    .map(ae -> new AnnotatedExpr(EUnOpPre(operatorString, unOp.precedence, ae), meta(index)));
                 })
             )
           );

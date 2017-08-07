@@ -1,5 +1,7 @@
 package haxpression2;
 
+import Parsihax;
+
 using thx.Arrays;
 import thx.Functions.identity;
 using thx.Maps;
@@ -9,6 +11,8 @@ using thx.Strings;
 import thx.Validation;
 import thx.Validation.*;
 
+import haxpression2.error.EvalError;
+
 /**
  *  Expression AST
  */
@@ -16,7 +20,7 @@ enum Expr<V, A> {
   ELit(value : V);
   EVar(name : String);
   EFunc(func : String, args : Array<AnnotatedExpr<V, A>>);
-  EUnOpPre(operator : String, expr : AnnotatedExpr<V, A>);
+  EUnOpPre(operator : String, precedence: Int, expr : AnnotatedExpr<V, A>);
   //EUnOpPost(operator : String, expr : AnnotatedExpr<V, A>);
   EBinOp(operator : String, precedence: Int, left : AnnotatedExpr<V, A>, right : AnnotatedExpr<V, A>);
 }
@@ -37,7 +41,8 @@ typedef EvalFunc<V> = Array<V> -> VNel<String, V>;
  * Structure for caller to supply values for variables, and definitions for functions and operators
  * for use in an evaluation.
  */
-typedef EvalOptions<V> = {
+typedef EvalOptions<Expr, Error, V, A> = {
+  onError: String -> Expr -> Error,
   variables: Map<String, V>,
   unOps: {
     pre: Map<String, EvalUnOp<V>>,
@@ -46,6 +51,8 @@ typedef EvalOptions<V> = {
   binOps: Map<String, EvalBinOp<V>>,
   functions: Map<String, EvalFunc<V>>
 };
+
+typedef EvalResult<Expr, Error, V> = VNel<{ expr: Expr, error: Error }, V>;
 
 /**
  *  Helper class for dealing with `Expr<V, A>`
@@ -68,62 +75,64 @@ class Exprs {
         var argsStr = args.map(arg -> toString(arg.expr, valueToString)).join(", ");
         '${name}(${argsStr})';
 
-      case EUnOpPre(op, ae) :
-        '${op}${toString(ae.expr, valueToString)}';
+      case EUnOpPre(operator, precedence, operandExpr) :
+        '${operator}${toString(operandExpr.expr, valueToString)}';
 
-      case EBinOp(op, prec, left, right) :
+      case EBinOp(operator, precedence, leftExpr, rightExpr) :
         // if a left-side bin op has lower precendence, parenthesize it
-        var leftStr = toString(left.expr, valueToString);
-        var leftStrSafe = switch left.expr {
-          case EBinOp(_, lprec, _, _) if (lprec < prec) :
+        var leftStr = toString(leftExpr.expr, valueToString);
+        var leftStrSafe = switch leftExpr.expr {
+          case EBinOp(_, lprecedence, _, _) if (lprecedence < precedence) :
             '($leftStr)';
           case _ :
             '$leftStr';
         };
         // if a right-side bin op has lower precendence, parenthesize it
-        var rightStr = toString(right.expr, valueToString);
-        var rightStrSafe = switch right.expr {
-          case EBinOp(_, rprec, _, _) if (rprec < prec) :
+        var rightStr = toString(rightExpr.expr, valueToString);
+        var rightStrSafe = switch rightExpr.expr {
+          case EBinOp(_, rprecedence, _, _) if (rprecedence < precedence) :
             '($rightStr)';
           case _ :
             '$rightStr';
         };
-        '$leftStrSafe $op $rightStrSafe';
+        '$leftStrSafe $operator $rightStrSafe';
     }
   }
 
-  public static function eval<V, A>(expr : Expr<V, A>, options: EvalOptions<V>) : VNel<String, V> {
+  // TODO: change to EvalResult?
+  public static function eval<Error, V, A>(expr : Expr<V, A>, options: EvalOptions<Expr<V, A>, Error, V, A>) : EvalResult<Expr<V, A>, Error, V> {
     return switch expr {
       case ELit(value) : successNel(value);
 
       case EVar(name) :
         options.variables.getOption(name).cataf(
-          () -> failureNel('no variable definition was given for variable: $name'),
+          () -> failureNel({ expr: expr, error: options.onError('no definition was given for variable: $name', expr) }),
           value -> successNel(value)
         );
 
-      case EFunc(name, args) :
+      case EFunc(name, argExprs) :
         options.functions.getOption(name).cataf(
-          () -> failureNel('no function definition was given for function: $name'),
+          () -> failureNel({ expr: expr, error: options.onError('no definition was given for function: $name', expr) }),
           func ->
-            args.traverseValidation(arg -> eval(arg.expr, options), Nel.semigroup())
-              .flatMapV(values -> func(values))
+            argExprs.traverseValidation(argExpr -> eval(argExpr.expr, options), Nel.semigroup())
+              .flatMapV(argValues -> func(argValues).leftMap(errors -> errors.map(error -> { expr: expr, error: options.onError(error, expr) })))
         );
 
-      case EUnOpPre(operator, operand) :
+      case EUnOpPre(operator, precendece, operandExpr) :
         options.unOps.pre.getOption(operator).cataf(
-          () -> failureNel('no prefix operator was given for operator $operator'),
-          func -> eval(operand.expr, options).flatMapV(func)
+          () -> failureNel({ expr: expr, error: options.onError('no definition given for unary prefix operator: $operator', expr) }),
+          unOp -> eval(operandExpr.expr, options)
+            .flatMapV(operandValue -> unOp(operandValue).leftMap(errors -> errors.map(error -> { expr: expr, error: options.onError(error, expr) })))
         );
 
 
-      case EBinOp(op, prec, left, right) :
-        options.binOps.getOption(op).cataf(
-          () -> failureNel('no operator definition was given for operator: $op'),
-          func -> val2(
-            func,
-            eval(left.expr, options),
-            eval(right.expr, options),
+      case EBinOp(operator, precedence, leftExpr, rightExpr) :
+        options.binOps.getOption(operator).cataf(
+          () -> failureNel({ expr: expr, error: options.onError('no definition was given for binary operator: $operator', expr) }),
+          binOp -> val2(
+            (leftValue, rightValue) -> binOp(leftValue, rightValue).leftMap(errors -> errors.map(error -> { expr: expr, error: options.onError(error, expr) })),
+            eval(leftExpr.expr, options),
+            eval(rightExpr.expr, options),
             Nel.semigroup()
           ).flatMapV(identity)
         );
@@ -142,8 +151,8 @@ class Exprs {
       case ELit(v) : ELit(f(v));
       case EVar(name) : EVar(name);
       case EFunc(name, args) : EFunc(name, args.map(arg -> AnnotatedExpr.mapValue(arg, f)));
-      case EUnOpPre(operator, operand) : EUnOpPre(operator, AnnotatedExpr.mapValue(operand, f));
-      case EBinOp(op, prec, left, right) : EBinOp(op, prec, AnnotatedExpr.mapValue(left, f), AnnotatedExpr.mapValue(right, f));
+      case EUnOpPre(operator, precedence, operandExpr) : EUnOpPre(operator, precedence, AnnotatedExpr.mapValue(operandExpr, f));
+      case EBinOp(operator, precedence, leftExpr, rightExpr) : EBinOp(operator, precedence, AnnotatedExpr.mapValue(leftExpr, f), AnnotatedExpr.mapValue(rightExpr, f));
     }
   }
 
@@ -151,9 +160,9 @@ class Exprs {
     return switch expr {
       case ELit(value) : ELit(value);
       case EVar(name) : EVar(name);
-      case EFunc(name, args) : EFunc(name, args.map(arg -> AnnotatedExpr.mapAnnotation(arg, f)));
-      case EUnOpPre(operator, operand) : EUnOpPre(operator, AnnotatedExpr.mapAnnotation(operand, f));
-      case EBinOp(op, prec, left, right) : EBinOp(op, prec, AnnotatedExpr.mapAnnotation(left, f), AnnotatedExpr.mapAnnotation(right, f));
+      case EFunc(name, argExprs) : EFunc(name, argExprs.map(argExpr -> AnnotatedExpr.mapAnnotation(argExpr, f)));
+      case EUnOpPre(operator, precedence, operandExpr) : EUnOpPre(operator, precedence, AnnotatedExpr.mapAnnotation(operandExpr, f));
+      case EBinOp(operator, precedence, leftExpr, rightExpr) : EBinOp(operator, precedence, AnnotatedExpr.mapAnnotation(leftExpr, f), AnnotatedExpr.mapAnnotation(rightExpr, f));
     };
   }
 }
@@ -162,13 +171,13 @@ class AnnotatedExpr<V, A> {
   public var expr(default, null) : Expr<V, A>;
   public var annotation(default, null) : A;
 
-  public function new(expr, annotation) {
+  public function new(expr : Expr<V, A>, annotation : A) {
     this.expr = expr;
     this.annotation = annotation;
   }
 
-  public static function ae<V, A>(expr : Expr<V, A>, a : A) : AnnotatedExpr<V, A> {
-    return new AnnotatedExpr(expr, a);
+  public static function ae<V, A>(expr : Expr<V, A>, annotation : A) : AnnotatedExpr<V, A> {
+    return new AnnotatedExpr(expr, annotation);
   }
 
   public static function toString<V, A>(ae : AnnotatedExpr<V, A>, valueToString : V -> String, annotationToString : A -> String, ?depth = 0) : String {
@@ -180,13 +189,13 @@ class AnnotatedExpr<V, A> {
       case e = EVar(name) :
         '${Exprs.toString(e, valueToString)} ${annotationToString(ae.annotation)}';
 
-      case e = EFunc(name, args) :
-        var argStrings = args.map(arg -> toString(arg, valueToString, annotationToString, depth + 1)).join('\n$indent');
+      case e = EFunc(name, argExprs) :
+        var argStrings = argExprs.map(argExpr -> toString(argExpr, valueToString, annotationToString, depth + 1)).join('\n$indent');
 '${Exprs.toString(e, valueToString)}
 $argStrings';
 
-      case e = EUnOpPre(operator, operand) :
-        var operandString = toString(operand, valueToString, annotationToString, depth + 1);
+      case e = EUnOpPre(operator, precendece, operandExpr) :
+        var operandString = toString(operandExpr, valueToString, annotationToString, depth + 1);
 '${Exprs.toString(e, valueToString)}
 ${indent}${operator} ${annotationToString(ae.annotation)}
 ${indent}  Operand: $operandString';
@@ -198,6 +207,45 @@ ${indent}  Operand: $operandString';
 ${indent}${op} (prec: ${prec}) ${annotationToString(ae.annotation)}
 ${indent}  Left: $leftString
 ${indent}  Right: $rightString';
+    };
+  }
+
+  public static function eval<Error, V, A>(ae : AnnotatedExpr<V, A>, options: EvalOptions<AnnotatedExpr<V, A>, Error, V, A>) : EvalResult<AnnotatedExpr<V, A>, Error, V> {//VNel<{ expr: AnnotatedExpr<V, A>, error: Error }, V> {
+    return switch ae.expr {
+      case ELit(value) : successNel(value);
+
+      case EVar(name) :
+        options.variables.getOption(name).cataf(
+          () -> failureNel({ expr: ae, error: options.onError('no variable definition was given for variable: $name', ae) }),
+          value -> successNel(value)
+        );
+
+      case EFunc(name, argExprs) :
+        options.functions.getOption(name).cataf(
+          () -> failureNel({ expr: ae, error: options.onError('no function definition was given for function: $name', ae) }),
+          func ->
+            argExprs.traverseValidation(argExpr -> eval(argExpr, options), Nel.semigroup())
+              .flatMapV(argValues -> func(argValues).leftMap(errors -> errors.map(error -> { expr: ae, error: options.onError(error, ae) })))
+        );
+
+      case EUnOpPre(operator, precedence, operandExpr) :
+        options.unOps.pre.getOption(operator).cataf(
+          () -> failureNel({ expr: ae, error: options.onError('no prefix unary operator was given for operator: $operator', ae) }),
+          preOp -> eval(operandExpr, options)
+            .flatMapV(operandValue -> preOp(operandValue).leftMap(errors -> errors.map(error -> { expr: ae, error: options.onError(error, ae) })))
+        );
+
+      case EBinOp(operator, precedence, leftExpr, rightExpr) :
+        options.binOps.getOption(operator).cataf(
+          () -> failureNel({ expr: ae, error: options.onError('no operator definition was given for operator: $operator', ae) }),
+          binOp -> val2(
+            (leftValue, rightValue) -> binOp(leftValue, rightValue).leftMap(errors -> errors.map(error -> { expr: ae, error: options.onError(error, ae) })),
+            eval(leftExpr, options),
+            eval(rightExpr, options),
+            Nel.semigroup()
+          )
+          .flatMapV(identity)
+        );
     };
   }
 

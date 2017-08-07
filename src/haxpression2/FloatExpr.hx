@@ -3,6 +3,7 @@ package haxpression2;
 using thx.Arrays;
 import thx.Either;
 using thx.Eithers;
+import thx.Nel;
 import thx.Validation;
 import thx.Validation.*;
 
@@ -11,17 +12,31 @@ using haxpression2.Expr;
 import haxpression2.ExprParser;
 import haxpression2.UnOp;
 using haxpression2.Value;
+import haxpression2.error.EvalError;
+import haxpression2.error.ParseError;
 
-typedef FloatExpr = Expr<Value<Float>, ParseMeta>;
-typedef FloatExprParserOptions = ExprParserOptions<Value<Float>, Float, ParseMeta>;
-typedef FloatAnnotatedExpr = AnnotatedExpr<Value<Float>, ParseMeta>;
-typedef FloatEvalUnOp = EvalUnOp<Value<Float>>;
-typedef FloatEvalBinOp = EvalBinOp<Value<Float>>;
-typedef FloatEvalFunc = EvalFunc<Value<Float>>;
-typedef FloatEvalOptions = EvalOptions<Value<Float>>;
-typedef FloatExprParseResult = Either<ParseError<FloatAnnotatedExpr>, FloatAnnotatedExpr>;
-typedef FloatExprRoundTripResult = Either<ParseError<FloatAnnotatedExpr>, String>;
-typedef FloatExprEvalResult = VNel<String, Value<Float>>; //Either<ParseError<FloatAnnotatedExpr>, String>;
+typedef FloatValue = Value<Float>;
+typedef FloatExpr = Expr<FloatValue, ParseMeta>;
+typedef FloatAnnotatedExpr = AnnotatedExpr<FloatValue, ParseMeta>;
+
+typedef FloatParserOptions = ExprParserOptions<FloatValue, Float, ParseMeta>;
+typedef FloatParseError = ParseError<FloatAnnotatedExpr>;
+typedef FloatParseResult = Either<FloatParseError, FloatAnnotatedExpr>;
+
+typedef FloatEvalUnOp = EvalUnOp<FloatValue>;
+typedef FloatEvalBinOp = EvalBinOp<FloatValue>;
+typedef FloatEvalFunc = EvalFunc<FloatValue>;
+typedef FloatEvalError = EvalError<FloatAnnotatedExpr>;
+typedef FloatEvalOptions = EvalOptions<FloatAnnotatedExpr, FloatEvalError, FloatValue, ParseMeta>;
+typedef FloatEvalResult = EvalResult<FloatAnnotatedExpr, FloatEvalError, FloatValue>;
+
+enum FloatParseEvalResult {
+  ParseError(error : FloatParseError);
+  EvalError(errors : Nel<{ expr: FloatAnnotatedExpr, error: FloatEvalError }>);
+  Success(value : FloatValue);
+}
+
+typedef FloatRoundTripResult = Either<FloatParseError, String>;
 
 class FloatExprs {
   // https://www.haskell.org/onlinereport/haskell2010/haskellch4.html#x10-820004.4.2
@@ -90,21 +105,23 @@ class FloatExprs {
     );
   }
 
-  public static function parse(input : String, options: FloatExprParserOptions) : FloatExprParseResult {
+  public static function parse(input : String, options: FloatParserOptions) : FloatParseResult {
     return ExprParser.parse(input, options);
   }
 
-  public static function roundTrip(input : String, options: FloatExprParserOptions) : FloatExprRoundTripResult {
+  public static function roundTrip(input : String, options: FloatParserOptions) : FloatRoundTripResult {
     return ExprParser.parse(input, options)
       .map(ae -> toString(ae.expr));
   }
 
-  public static function eval(input: String, parserOptions: FloatExprParserOptions, evalOptions: FloatEvalOptions) : FloatExprEvalResult {
-    return ExprParser.parse(input, parserOptions)
-      .leftMap(e -> e.toString())
-      .map(ae -> ae.expr)
-      .toVNel()
-      .flatMapV(expr -> Exprs.eval(expr, evalOptions));
+  public static function parseEval(input: String, parserOptions: FloatParserOptions, evalOptions: FloatEvalOptions) : FloatParseEvalResult {
+    return switch ExprParser.parse(input, parserOptions) {
+      case Left(parseError) : ParseError(parseError);
+      case Right(expr) : switch AnnotatedExpr.eval(expr, evalOptions) {
+        case Left(error) : EvalError(error);
+        case Right(value) : Success(value);
+      };
+    };
   }
 
   public static function ensureNumeric(value : Value<Float>) : Either<String, Value<Float>> {
