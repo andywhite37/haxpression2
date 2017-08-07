@@ -3,9 +3,9 @@ package haxpression2;
 using Parsihax;
 
 using haxpression2.Expr;
-import haxpression2.Expr.AnnotatedExpr.ae;
+import haxpression2.Expr.AnnotatedExpr.create as ae;
 import haxpression2.ParseMeta;
-import haxpression2.ParseMeta.meta;
+import haxpression2.ParseMeta.create as meta;
 using haxpression2.Value;
 
 import TestHelper.assertParse;

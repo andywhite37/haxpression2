@@ -17,12 +17,15 @@ import thx.Validation.*;
 enum Expr<V, A> {
   ELit(value : V);
   EVar(name : String);
-  EFunc(func : String, args : Array<AnnotatedExpr<V, A>>);
-  EUnOpPre(operator : String, precedence: Int, expr : AnnotatedExpr<V, A>);
+  EFunc(func : String, argExprs : Array<AnnotatedExpr<V, A>>);
+  EUnOpPre(operator : String, precedence: Int, operandExpr : AnnotatedExpr<V, A>);
   //EUnOpPost(operator : String, expr : AnnotatedExpr<V, A>);
-  EBinOp(operator : String, precedence: Int, left : AnnotatedExpr<V, A>, right : AnnotatedExpr<V, A>);
+  EBinOp(operator : String, precedence: Int, leftExpr : AnnotatedExpr<V, A>, rightExpr : AnnotatedExpr<V, A>);
 }
 
+/**
+ * Function for evaluating a unary operator expression (VNel allows for failures)
+ */
 typedef EvalUnOp<V> = V -> VNel<String, V>;
 
 /**
@@ -63,21 +66,21 @@ class Exprs {
    *  @param valueToString - Function to convert the `V` value type to `String`
    *  @return String
    */
-  public static function toString<V, A>(expr : Expr<V, A>, valueToString : V -> String) : String {
+  public static function renderString<V, A>(expr : Expr<V, A>, valueToString : V -> String) : String {
     return switch expr {
       case ELit(value) : valueToString(value);
 
       case EVar(name) : name;
 
       case EFunc(name, argExprs) :
-        var argsStr = argExprs.map(argExpr -> toString(argExpr.expr, valueToString)).join(", ");
+        var argsStr = argExprs.map(argExpr -> renderString(argExpr.expr, valueToString)).join(", ");
         '${name}(${argsStr})';
 
       case EUnOpPre(operator, precedence, operandExpr) :
-        '${operator}${toString(operandExpr.expr, valueToString)}';
+        '${operator}${renderString(operandExpr.expr, valueToString)}';
 
       case EBinOp(operator, precedence, leftExpr, rightExpr) :
-        var leftStr = toString(leftExpr.expr, valueToString);
+        var leftStr = renderString(leftExpr.expr, valueToString);
         var leftStrSafe = switch leftExpr.expr {
           case EBinOp(_, lprecedence, _, _) if (lprecedence < precedence) :
             // if a left-side bin op has lower precendence, parenthesize it
@@ -85,7 +88,7 @@ class Exprs {
           case _ :
             '$leftStr';
         };
-        var rightStr = toString(rightExpr.expr, valueToString);
+        var rightStr = renderString(rightExpr.expr, valueToString);
         var rightStrSafe = switch rightExpr.expr {
           case EBinOp(_, rprecedence, _, _) if (rprecedence < precedence) :
             // if a right-side bin op has lower precendence, parenthesize it
@@ -173,34 +176,34 @@ class AnnotatedExpr<V, A> {
     this.annotation = annotation;
   }
 
-  public static function ae<V, A>(expr : Expr<V, A>, annotation : A) : AnnotatedExpr<V, A> {
+  public static function create<V, A>(expr : Expr<V, A>, annotation : A) : AnnotatedExpr<V, A> {
     return new AnnotatedExpr(expr, annotation);
   }
 
-  public static function toString<V, A>(ae : AnnotatedExpr<V, A>, valueToString : V -> String, annotationToString : A -> String, ?depth = 0) : String {
+  public static function renderString<V, A>(ae : AnnotatedExpr<V, A>, valueToString : V -> String, annotationToString : A -> String, ?depth = 0) : String {
     var indent = "  ".repeat(depth);
     return switch ae.expr {
       case e = ELit(v) :
-        '${Exprs.toString(e, valueToString)} ${annotationToString(ae.annotation)}';
+        '${Exprs.renderString(e, valueToString)} ${annotationToString(ae.annotation)}';
 
       case e = EVar(name) :
-        '${Exprs.toString(e, valueToString)} ${annotationToString(ae.annotation)}';
+        '${Exprs.renderString(e, valueToString)} ${annotationToString(ae.annotation)}';
 
       case e = EFunc(name, argExprs) :
-        var argStrings = argExprs.map(argExpr -> toString(argExpr, valueToString, annotationToString, depth + 1)).join('\n$indent');
-'${Exprs.toString(e, valueToString)}
+        var argStrings = argExprs.map(argExpr -> renderString(argExpr, valueToString, annotationToString, depth + 1)).join('\n$indent');
+'${Exprs.renderString(e, valueToString)}
 $argStrings';
 
       case e = EUnOpPre(operator, precendece, operandExpr) :
-        var operandString = toString(operandExpr, valueToString, annotationToString, depth + 1);
-'${Exprs.toString(e, valueToString)}
+        var operandString = renderString(operandExpr, valueToString, annotationToString, depth + 1);
+'${Exprs.renderString(e, valueToString)}
 ${indent}${operator} ${annotationToString(ae.annotation)}
 ${indent}  Operand: $operandString';
 
       case e = EBinOp(op, prec, left, right) :
-        var leftString = toString(left, valueToString, annotationToString, depth + 1);
-        var rightString = toString(right, valueToString, annotationToString, depth + 1);
-'${Exprs.toString(e, valueToString)}
+        var leftString = renderString(left, valueToString, annotationToString, depth + 1);
+        var rightString = renderString(right, valueToString, annotationToString, depth + 1);
+'${Exprs.renderString(e, valueToString)}
 ${indent}${op} (prec: ${prec}) ${annotationToString(ae.annotation)}
 ${indent}  Left: $leftString
 ${indent}  Right: $rightString';

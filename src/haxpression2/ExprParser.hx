@@ -51,36 +51,40 @@ class ExprParser {
     var expr : Parser<AnnotatedExpr<V, A>>;
 
     // Literal value parser
-    var exprLit : Parser<AnnotatedExpr<V, A>> = index().flatMap(index ->
-      valueParser.map(v -> ae(ELit(options.convertValue(v)), meta(index)))
-    );
+    var exprLit : Parser<AnnotatedExpr<V, A>> =
+      index().flatMap(index ->
+        valueParser.map(v -> ae(ELit(options.convertValue(v)), meta(index)))
+      );
 
     // Variable parser
-    var exprVar : Parser<AnnotatedExpr<V, A>> = index().flatMap(index ->
-      options.variableNameRegexp.regexp().map(v -> ae(EVar(v), meta(index)))
-    );
+    var exprVar : Parser<AnnotatedExpr<V, A>> =
+      index().flatMap(index ->
+        options.variableNameRegexp.regexp().map(v -> ae(EVar(v), meta(index)))
+      );
 
     // Function parser
-    var exprFunc : Parser<AnnotatedExpr<V, A>> = index().flatMap(index ->
-      options.functionNameRegexp.regexp()
-        .flatMap(functionName ->
-          ows
-            .skip(string("("))
-            .skip(ows)
-            .then(sepBy(expr, ows.then(string(",")).skip(ows)))
-            .skip(string(")"))
-            .map(args -> ae(EFunc(functionName, args), meta(index)))
-        )
-    );
+    var exprFunc : Parser<AnnotatedExpr<V, A>> =
+      index().flatMap(index ->
+        options.functionNameRegexp.regexp()
+          .flatMap(functionName ->
+            ows
+              .skip(string("("))
+              .skip(ows)
+              .then(sepBy(expr, ows.then(string(",")).skip(ows)))
+              .skip(string(")"))
+              .map(args -> ae(EFunc(functionName, args), meta(index)))
+          )
+      );
 
     // Parenthesized expression parser
-    var exprParen : Parser<AnnotatedExpr<V, A>> = index().flatMap(index ->
-      string("(")
-        .skip(ows)
-        .then(expr)
-        .skip(ows)
-        .skip(string(")"))
-    );
+    var exprParen : Parser<AnnotatedExpr<V, A>> =
+      index().flatMap(index ->
+        string("(")
+          .skip(ows)
+          .then(expr)
+          .skip(ows)
+          .skip(string(")"))
+      );
 
     // Base case expression parser
     var exprBaseTerm : Parser<AnnotatedExpr<V, A>> =

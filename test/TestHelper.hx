@@ -53,17 +53,17 @@ class TestHelper {
     return ExprParser.create(getTestParserOptions()).expr;
   }
 
-  public static function testParse(input : String) : Either<ParseError<AnnotatedExpr<Value<Float>, ParseMeta>>, AnnotatedExpr<Value<Float>, ParseMeta>> {
+  public static function testParse(input : String) : Either<FloatParseError, FloatAnnotatedExpr> {
     return FloatExprs.parse(input, getTestParserOptions());
   }
 
-  public static function assertParse(input : String, expected : AnnotatedExpr<Value<Float>, ParseMeta>, ?log : Bool, ?pos : haxe.PosInfos) : Void {
+  public static function assertParse(input : String, expected : FloatAnnotatedExpr, ?log : Bool, ?pos : haxe.PosInfos) : Void {
     switch ExprParser.parse(input, TestHelper.getTestParserOptions()) {
       case Left(parseError) : Assert.fail(parseError.toString(), pos);
       case Right(actual) :
         if (log) {
           trace(input);
-          trace(actual.toString(v -> Values.toString(v, Std.string), a -> a.toString()));
+          trace(actual.renderString(v -> Values.renderString(v, Std.string), meta -> meta.toString()));
         }
         Assert.same(expected, actual, pos);
     }
@@ -88,7 +88,7 @@ class TestHelper {
   }
 
   static function evalErrorToString(data: { expr: FloatAnnotatedExpr, error : FloatEvalError }) : String {
-    return data.error.getString(ae -> ae.toString(FloatExprs.valueToString, meta -> meta.toString()));
+    return data.error.getString(ae -> ae.renderString(FloatExprs.valueToString, meta -> meta.toString()));
   }
 
   public static function testParseEval(input : String) : VNel<String, Value<Float>> {
@@ -109,7 +109,7 @@ class TestHelper {
   public static function traceExpr(input : String, ?pos : haxe.PosInfos) : Void {
     switch testParse(input) {
       case Left(error) : trace(error.toString(), pos);
-      case Right(value) : trace(value.toString(FloatExprs.valueToString, a -> a.toString()), pos);
+      case Right(value) : trace(value.renderString(FloatExprs.valueToString, a -> a.toString()), pos);
     };
   }
 }

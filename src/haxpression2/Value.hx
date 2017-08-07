@@ -9,7 +9,7 @@ enum Value<N> {
 }
 
 class Values {
-  public static function toString<N>(value : Value<N>, nToString : N -> String) : String {
+  public static function renderString<N>(value : Value<N>, nToString : N -> String) : String {
     return switch value {
       case VInt(v) : Std.string(v);
       case VNum(v) : nToString(v);

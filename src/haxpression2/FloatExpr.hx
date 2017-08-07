@@ -96,12 +96,12 @@ class FloatExprs {
   }
 
   public static function valueToString(value : Value<Float>) : String {
-    return value.toString(Std.string);
+    return value.renderString(Std.string);
   }
 
   public static function toString(expr : FloatExpr) : String {
-    return expr.toString(
-      value -> value.toString(Std.string)
+    return expr.renderString(
+      value -> value.renderString(Std.string)
     );
   }
 

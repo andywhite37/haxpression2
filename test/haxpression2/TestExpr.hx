@@ -3,8 +3,8 @@ package haxpression2;
 import utest.Assert;
 
 import haxpression2.FloatExpr;
-import haxpression2.Expr.AnnotatedExpr.ae;
-import haxpression2.ParseMeta.meta;
+import haxpression2.Expr.AnnotatedExpr.create as ae;
+import haxpression2.ParseMeta.create as meta;
 import haxpression2.error.EvalError;
 
 import TestHelper.assertParseEval;
@@ -83,12 +83,15 @@ class TestExpr {
     switch FloatExprs.parseEval("a + d + e", TestHelper.getTestParserOptions(), TestHelper.getTestEvalOptions()) {
       case EvalErrors(errors) if (errors.toArray().length == 2) :
         var errorArray = errors.toArray().reverse();
+
         Assert.same("no variable definition was given for variable: d", errorArray[0].error.message);
         Assert.same(ae(EVar("d"), meta(4, 1, 5)), errorArray[0].error.expr);
         Assert.same(ae(EVar("d"), meta(4, 1, 5)), errorArray[0].expr);
+
         Assert.same("no variable definition was given for variable: e", errorArray[1].error.message);
         Assert.same(ae(EVar("e"), meta(8, 1, 9)), errorArray[1].error.expr);
         Assert.same(ae(EVar("e"), meta(8, 1, 9)), errorArray[1].expr);
+
       case bad : Assert.fail('unexpected parseEval result: $bad');
     };
   }

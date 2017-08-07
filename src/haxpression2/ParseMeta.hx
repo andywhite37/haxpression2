@@ -11,7 +11,7 @@ class ParseMeta {
     this.index = index;
   }
 
-  public static function meta(/*input : String,*/ offset: Int, line: Int, column: Int) : ParseMeta {
+  public static function create(/*input : String,*/ offset: Int, line: Int, column: Int) : ParseMeta {
     return new ParseMeta(/*input,*/ { offset: offset, line: line, column: column });
   }
 

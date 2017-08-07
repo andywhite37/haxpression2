@@ -9,22 +9,22 @@ import haxpression2.CoreParser as C;
 import haxpression2.Value;
 import haxpression2.error.ParseError;
 
-typedef ValueParserOptions<D> = {
-  parseDecimal : String -> D
+typedef ValueParserOptions<N> = {
+  parseDecimal : String -> N
 };
 
-typedef ValueParsers<D> = {
-  value: Parser<Value<D>>,
+typedef ValueParsers<N> = {
+  value: Parser<Value<N>>,
   _internal: {
-    valueNum: Parser<Value<D>>,
-    valueInt: Parser<Value<D>>,
-    valueStr: Parser<Value<D>>,
-    valueBool: Parser<Value<D>>,
+    valueNum: Parser<Value<N>>,
+    valueInt: Parser<Value<N>>,
+    valueStr: Parser<Value<N>>,
+    valueBool: Parser<Value<N>>,
   }
 };
 
 class ValueParser {
-  public static function create<D>(options: ValueParserOptions<D>) : ValueParsers<D> {
+  public static function create<N>(options: ValueParserOptions<N>) : ValueParsers<N> {
     var valueNum = C.decimalString.map(options.parseDecimal).map(VNum);
     var valueInt = C.integer.map(VInt);
     var valueStr = C.string.map(VStr);
