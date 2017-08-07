@@ -5,8 +5,20 @@
 
 --each
 
+# JavaScript
 -cp test
 -lib utest
 -main TestAll
 -js bin/runner.js
+-cmd echo "--- JavaScript ---"
 -cmd node bin/runner.js
+
+--next
+
+# Python
+-cp test
+-lib utest
+-main TestAll
+-python bin/runner.py
+-cmd echo "--- Python ---"
+-cmd python3 bin/runner.py
