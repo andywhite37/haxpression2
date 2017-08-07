@@ -11,8 +11,6 @@ using thx.Strings;
 import thx.Validation;
 import thx.Validation.*;
 
-import haxpression2.error.EvalError;
-
 /**
  *  Expression AST
  */
@@ -71,26 +69,26 @@ class Exprs {
 
       case EVar(name) : name;
 
-      case EFunc(name, args) :
-        var argsStr = args.map(arg -> toString(arg.expr, valueToString)).join(", ");
+      case EFunc(name, argExprs) :
+        var argsStr = argExprs.map(argExpr -> toString(argExpr.expr, valueToString)).join(", ");
         '${name}(${argsStr})';
 
       case EUnOpPre(operator, precedence, operandExpr) :
         '${operator}${toString(operandExpr.expr, valueToString)}';
 
       case EBinOp(operator, precedence, leftExpr, rightExpr) :
-        // if a left-side bin op has lower precendence, parenthesize it
         var leftStr = toString(leftExpr.expr, valueToString);
         var leftStrSafe = switch leftExpr.expr {
           case EBinOp(_, lprecedence, _, _) if (lprecedence < precedence) :
+            // if a left-side bin op has lower precendence, parenthesize it
             '($leftStr)';
           case _ :
             '$leftStr';
         };
-        // if a right-side bin op has lower precendence, parenthesize it
         var rightStr = toString(rightExpr.expr, valueToString);
         var rightStrSafe = switch rightExpr.expr {
           case EBinOp(_, rprecedence, _, _) if (rprecedence < precedence) :
+            // if a right-side bin op has lower precendence, parenthesize it
             '($rightStr)';
           case _ :
             '$rightStr';
@@ -99,7 +97,6 @@ class Exprs {
     }
   }
 
-  // TODO: change to EvalResult?
   public static function eval<Error, V, A>(expr : Expr<V, A>, options: EvalOptions<Expr<V, A>, Error, V, A>) : EvalResult<Expr<V, A>, Error, V> {
     return switch expr {
       case ELit(value) : successNel(value);

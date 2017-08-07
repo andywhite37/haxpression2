@@ -1,6 +1,7 @@
 using thx.Arrays;
 import thx.Either;
 using thx.Eithers;
+import thx.Nel;
 import thx.Validation;
 import thx.Validation.*;
 
@@ -82,10 +83,18 @@ class TestHelper {
     };
   }
 
+  static function evalErrorsToString(errors : Nel<{ expr: FloatAnnotatedExpr, error: FloatEvalError }>) : String {
+    return errors.map(evalErrorToString).toArray().join("\n");
+  }
+
+  static function evalErrorToString(data: { expr: FloatAnnotatedExpr, error : FloatEvalError }) : String {
+    return data.error.getString(ae -> ae.toString(FloatExprs.valueToString, meta -> meta.toString()));
+  }
+
   public static function testParseEval(input : String) : VNel<String, Value<Float>> {
     return switch FloatExprs.parseEval(input, getTestParserOptions(), getTestEvalOptions()) {
       case ParseError(error) : failureNel(error.toString());
-      case EvalError(exprErrors) : failure(exprErrors.map(exprError -> exprError.error.toString()));
+      case EvalErrors(errors) : failureNel(evalErrorsToString(errors));
       case Success(value) : successNel(value);
     };
   }

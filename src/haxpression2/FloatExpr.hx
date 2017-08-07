@@ -32,7 +32,7 @@ typedef FloatEvalResult = EvalResult<FloatAnnotatedExpr, FloatEvalError, FloatVa
 
 enum FloatParseEvalResult {
   ParseError(error : FloatParseError);
-  EvalError(errors : Nel<{ expr: FloatAnnotatedExpr, error: FloatEvalError }>);
+  EvalErrors(errors : Nel<{ expr: FloatAnnotatedExpr, error: FloatEvalError }>);
   Success(value : FloatValue);
 }
 
@@ -118,7 +118,7 @@ class FloatExprs {
     return switch ExprParser.parse(input, parserOptions) {
       case Left(parseError) : ParseError(parseError);
       case Right(expr) : switch AnnotatedExpr.eval(expr, evalOptions) {
-        case Left(error) : EvalError(error);
+        case Left(errors) : EvalErrors(errors);
         case Right(value) : Success(value);
       };
     };

@@ -15,8 +15,8 @@ class EvalError<Expr> extends Error {
     this.expr = expr;
   }
 
-  public override function toString() : String {
-    return message;
+  public function getString(exprToString : Expr -> String) : String {
+    return '$message in expression: ${exprToString(expr)}';
   }
 }
 
