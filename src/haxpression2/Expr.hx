@@ -1,17 +1,8 @@
 package haxpression2;
 
-import Parsihax;
-
 using thx.Arrays;
-import thx.Functions.identity;
-using thx.Iterators;
 using thx.Maps;
-import thx.Nel;
-using thx.Options;
-using thx.Strings;
 import thx.Tuple;
-import thx.Validation;
-import thx.Validation.*;
 
 /**
  *  Expression AST
@@ -110,7 +101,9 @@ class AnnotatedExpr<V, A> {
             return mergeVars(vars, getVars(argExpr));
           }, vars);
         case EUnOpPre(_, _, operandExpr) : mergeVars(vars, getVars(operandExpr));
-        case EBinOp(_, _, leftExpr, rightExpr) : mergeVars(mergeVars(vars, getVars(leftExpr)), getVars(rightExpr));
+        case EBinOp(_, _, leftExpr, rightExpr) :
+          var varsWithLeftVars = mergeVars(vars, getVars(leftExpr));
+          mergeVars(varsWithLeftVars, getVars(rightExpr));
       }
     }
     return accVars(new Map(), ae);

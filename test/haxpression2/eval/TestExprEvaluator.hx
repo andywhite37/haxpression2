@@ -76,5 +76,26 @@ class TestExprEvaluator {
 
       case bad : Assert.fail('unexpected parseEval result: $bad');
     };
+
+    switch FloatExprs.parseEval("true + 1", TestHelper.getTestParserOptions(), TestHelper.getTestEvalOptions()) {
+      case EvalErrors(Single(exprError)) :
+        Assert.same('cannot combine values of incompatible types: `VBool(true)` and `VInt(1)`', exprError.error.message);
+        Assert.same(meta(5, 1, 6), exprError.error.expr.annotation);
+      case bad : Assert.fail('unexpected parseEval result: $bad');
+    };
+
+    switch FloatExprs.parseEval("true + 1 + 'hi'", TestHelper.getTestParserOptions(), TestHelper.getTestEvalOptions()) {
+      case EvalErrors(Single(exprError)) :
+        Assert.same('cannot combine values of incompatible types: `VBool(true)` and `VInt(1)`', exprError.error.message);
+        Assert.same(meta(5, 1, 6), exprError.error.expr.annotation);
+      case bad : Assert.fail('unexpected parseEval result: $bad');
+    };
+
+    switch FloatExprs.parseEval("true || false + 'hi'", TestHelper.getTestParserOptions(), TestHelper.getTestEvalOptions()) {
+      case EvalErrors(Single(exprError)) :
+        Assert.same('cannot combine values of incompatible types: `VBool(false)` and `VStr(hi)`', exprError.error.message);
+        Assert.same(meta(14, 1, 15), exprError.error.expr.annotation);
+      case bad : Assert.fail('unexpected parseEval result: $bad');
+    };
   }
 }

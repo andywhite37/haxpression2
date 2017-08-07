@@ -1,9 +1,6 @@
 package haxpression2;
 
-import utest.Assert;
-
 import TestHelper.assertExprVars;
-import TestHelper.assertAnnotatedExprVars;
 
 class TestExpr {
   public function new() {}
