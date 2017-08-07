@@ -12,6 +12,10 @@ class CoreParser {
   public static var ws(default, never) : Parser<String> = whitespace();
   public static var ows(default, never) : Parser<String> = optWhitespace();
 
+  // Constants
+  public static var na(default, never) : Parser<String> = ~/na/i.regexp();
+  public static var nm(default, never) : Parser<String> = ~/nm/i.regexp();
+
   // Integers
   static var integerZero(default, never) : Parser<Int> = "0".string().map(Std.parseInt);
   static var integerNonZero(default, never) : Parser<Int> = ~/[1-9][0-9]*/.regexp().map(Std.parseInt);

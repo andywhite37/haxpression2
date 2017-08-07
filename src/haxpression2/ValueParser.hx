@@ -16,6 +16,8 @@ typedef ValueParserOptions<N> = {
 typedef ValueParsers<N> = {
   value: Parser<Value<N>>,
   _internal: {
+    valueNA: Parser<Value<N>>,
+    valueNM: Parser<Value<N>>,
     valueNum: Parser<Value<N>>,
     valueInt: Parser<Value<N>>,
     valueStr: Parser<Value<N>>,
@@ -25,14 +27,18 @@ typedef ValueParsers<N> = {
 
 class ValueParser {
   public static function create<N>(options: ValueParserOptions<N>) : ValueParsers<N> {
+    var valueNA = C.na.map(_ -> VNA);
+    var valueNM = C.nm.map(_ -> VNM);
     var valueNum = C.decimalString.map(options.parseDecimal).map(VNum);
     var valueInt = C.integer.map(VInt);
     var valueStr = C.string.map(VStr);
     var valueBool = C.bool.map(VBool);
-    var value = choice([valueNum, valueInt, valueStr, valueBool]);
+    var value = choice([valueNA, valueNM, valueNum, valueInt, valueStr, valueBool]);
     return {
       value: value,
       _internal: {
+        valueNA: valueNA,
+        valueNM: valueNM,
         valueNum: valueNum,
         valueInt: valueInt,
         valueStr: valueStr,

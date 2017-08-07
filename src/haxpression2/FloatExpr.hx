@@ -126,6 +126,8 @@ class FloatExprs {
 
   public static function ensureNumeric(value : Value<Float>) : Either<String, Value<Float>> {
     return switch value {
+      case v = VNA : Right(v);
+      case v = VNM : Right(v);
       case v = VInt(i) : Right(v);
       case v = VNum(f) : Right(v);
       case VStr(v) : Left('string value "$v" is not numeric');
@@ -213,10 +215,10 @@ class FloatExprs {
   public static function div(l : Value<Float>, r: Value<Float>) : VNel<String, Value<Float>> {
     return reduceValues(
       [l, r],
-      (a, b) -> Validation.successNel(a / b).map(VNum),
-      (a, b) -> Validation.successNel(a / b).map(VNum),
-      (a, b) -> Validation.successNel(a / b).map(VNum),
-      (a, b) -> Validation.successNel(a / b).map(VNum),
+      (a, b) -> b == 0 ? Validation.successNel(VNM) : Validation.successNel(a / b).map(VNum),
+      (a, b) -> b == 0 ? Validation.successNel(VNM) : Validation.successNel(a / b).map(VNum),
+      (a, b) -> b == 0 ? Validation.successNel(VNM) : Validation.successNel(a / b).map(VNum),
+      (a, b) -> b == 0 ? Validation.successNel(VNM) : Validation.successNel(a / b).map(VNum),
       (a, b) -> Validation.failureNel('cannot divide string values'),
       (a, b) -> Validation.failureNel('cannot divide bool values')
     );
@@ -294,6 +296,8 @@ class FloatExprs {
 
   public static function negate(operand : Value<Float>) : VNel<String, Value<Float>> {
     return switch operand {
+      case VNA : successNel(VNA);
+      case VNM : successNel(VNM);
       case VInt(v) : successNel(VInt(-v));
       case VNum(v) : successNel(VNum(-v));
       case VStr(v) : failureNel('cannot negate string value: $v');
@@ -303,6 +307,8 @@ class FloatExprs {
 
   public static function increment(operand : Value<Float>) : VNel<String, Value<Float>> {
     return switch operand {
+      case VNA : successNel(VNA);
+      case VNM : successNel(VNM);
       case VInt(v) : successNel(VInt(v + 1));
       case VNum(v) : successNel(VNum(v + 1));
       case VStr(v) : failureNel('cannot increment string value: $v');
@@ -312,6 +318,8 @@ class FloatExprs {
 
   public static function not(operand : Value<Float>) : VNel<String, Value<Float>> {
     return switch operand {
+      case VNA : failureNel('cannot `not` NA value');
+      case VNM : failureNel('cannot `not` NM value');
       case VInt(v) : failureNel('cannot `not` int value: $v');
       case VNum(v) : failureNel('cannot `not` float value: $v');
       case VStr(v) : failureNel('cannot `not` string value: $v');

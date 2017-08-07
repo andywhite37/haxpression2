@@ -16,11 +16,11 @@ class TestExprParser {
 
   public function new() {}
 
-  public function setup() {
+  public function setup() : Void {
     exprParser = TestHelper.getTestExprParser();
   }
 
-  public function testWhitespaceErrors() {
+  public function testWhitespaceErrors() : Void {
     assertParseError("");
     assertParseError(" ");
     assertParseError("   ");
@@ -31,16 +31,33 @@ class TestExprParser {
     assertParseError(",");
   }
 
-  public function testLitNum() {
-    assertParse("0.0", ae(ELit(VNum(0.0)), new ParseMeta({ offset: 0, line: 1, column: 1 })));
-    assertParse("1.0", ae(ELit(VNum(1.0)), new ParseMeta({ offset: 0, line: 1, column: 1 })));
-    assertParse(" 1.1  ", ae(ELit(VNum(1.1)), new ParseMeta({ offset: 1, line: 1, column: 2 })));
+  public function testLitNANM() : Void {
+    assertParse("NA", ae(ELit(VNA), meta(0, 1, 1)));
+    assertParse("na", ae(ELit(VNA), meta(0, 1, 1)));
+    assertParse("Na", ae(ELit(VNA), meta(0, 1, 1)));
+    assertParse("nA", ae(ELit(VNA), meta(0, 1, 1)));
+    assertParse("NM", ae(ELit(VNM), meta(0, 1, 1)));
+    assertParse("nm", ae(ELit(VNM), meta(0, 1, 1)));
+    assertParse("Nm", ae(ELit(VNM), meta(0, 1, 1)));
+    assertParse("nM", ae(ELit(VNM), meta(0, 1, 1)));
+    assertParse(
+      "NA + NM",
+      ae(
+        EBinOp(
+          "+",
+          6,
+          ae(ELit(VNA), meta(0, 1, 1)),
+          ae(ELit(VNM), meta(5, 1, 6))
+        ),
+        meta(3, 1, 4)
+      )
+    );
   }
 
-  public function testLitInt() {
-    assertParse("0", ae(ELit(VInt(0)), new ParseMeta({ offset: 0, line: 1, column: 1 })));
-    assertParse("1", ae(ELit(VInt(1)), new ParseMeta({ offset: 0, line: 1, column: 1 })));
-    assertParse(" 1  ", ae(ELit(VInt(1)), new ParseMeta({ offset: 1, line: 1, column: 2 })));
+  public function testLitInt() : Void {
+    assertParse("0", ae(ELit(VInt(0)), meta(0, 1, 1)));
+    assertParse("1", ae(ELit(VInt(1)), meta(0, 1, 1)));
+    assertParse(" 1  ", ae(ELit(VInt(1)), meta(1, 1, 2)));
     assertParse(" -1  ",
       ae(
         EUnOpPre(
@@ -56,15 +73,21 @@ class TestExprParser {
     );
   }
 
+  public function testLitNum() {
+    assertParse("0.0", ae(ELit(VNum(0.0)), meta(0, 1, 1)));
+    assertParse("1.0", ae(ELit(VNum(1.0)), meta(0, 1, 1)));
+    assertParse(" 1.1  ", ae(ELit(VNum(1.1)), meta(1, 1, 2)));
+  }
+
   public function testLitBool() {
-    assertParse("true", ae(ELit(VBool(true)), new ParseMeta({ offset: 0, line: 1, column: 1 })));
-    assertParse("false", ae(ELit(VBool(false)), new ParseMeta({ offset: 0, line: 1, column: 1 })));
-    assertParse("   true ", ae(ELit(VBool(true)), new ParseMeta({ offset: 3, line: 1, column: 4 })));
-    assertParse("  false ", ae(ELit(VBool(false)), new ParseMeta({ offset: 2, line: 1, column: 3 })));
-    assertParse("True", ae(ELit(VBool(true)), new ParseMeta({ offset: 0, line: 1, column: 1 })));
-    assertParse("False", ae(ELit(VBool(false)), new ParseMeta({ offset: 0, line: 1, column: 1 })));
-    assertParse("TRUE", ae(ELit(VBool(true)), new ParseMeta({ offset: 0, line: 1, column: 1 })));
-    assertParse("FALSE", ae(ELit(VBool(false)), new ParseMeta({ offset: 0, line: 1, column: 1 })));
+    assertParse("true", ae(ELit(VBool(true)), meta(0, 1, 1)));
+    assertParse("false", ae(ELit(VBool(false)), meta(0, 1, 1)));
+    assertParse("   true ", ae(ELit(VBool(true)), meta(3, 1, 4)));
+    assertParse("  false ", ae(ELit(VBool(false)), meta(2, 1, 3)));
+    assertParse("True", ae(ELit(VBool(true)), meta(0, 1, 1)));
+    assertParse("False", ae(ELit(VBool(false)), meta(0, 1, 1)));
+    assertParse("TRUE", ae(ELit(VBool(true)), meta(0, 1, 1)));
+    assertParse("FALSE", ae(ELit(VBool(false)), meta(0, 1, 1)));
   }
 
   public function testVar() {
