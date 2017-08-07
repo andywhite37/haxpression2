@@ -7,6 +7,7 @@ import Parsihax;
 
 import utest.Assert;
 
+using haxpression2.AnnotatedExpr;
 using haxpression2.Expr;
 using haxpression2.Value;
 import haxpression2.eval.EvalError;

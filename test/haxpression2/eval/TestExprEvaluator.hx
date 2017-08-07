@@ -2,8 +2,7 @@ package haxpression2.eval;
 
 import utest.Assert;
 
-import haxpression2.Expr.AnnotatedExpr.create as ae;
-import haxpression2.eval.EvalError;
+import haxpression2.AnnotatedExpr.create as ae;
 import haxpression2.parse.ParseMeta.create as meta;
 import haxpression2.simple.FloatExpr;
 

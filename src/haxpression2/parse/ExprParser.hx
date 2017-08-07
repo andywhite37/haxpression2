@@ -6,6 +6,7 @@ import thx.Either;
 import Parsihax.*;
 using Parsihax;
 
+import haxpression2.AnnotatedExpr;
 import haxpression2.Expr;
 import haxpression2.Value;
 import haxpression2.parse.CoreParser.ows;

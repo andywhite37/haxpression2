@@ -3,7 +3,7 @@ package haxpression2.parse;
 using Parsihax;
 
 using haxpression2.Expr;
-import haxpression2.Expr.AnnotatedExpr.create as ae;
+import haxpression2.AnnotatedExpr.create as ae;
 import haxpression2.parse.ParseMeta;
 import haxpression2.parse.ParseMeta.create as meta;
 using haxpression2.Value;
