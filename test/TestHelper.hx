@@ -73,8 +73,8 @@ class TestHelper {
     };
   }
 
-  public static function assertRoundTrip(expected : String, input : String, ?pos : haxe.PosInfos) : Void {
-    switch FloatExprs.roundTrip(input, getTestParserOptions()) {
+  public static function assertFormat(expected : String, input : String, ?pos : haxe.PosInfos) : Void {
+    switch FloatExprs.format(input, getTestParserOptions()) {
       case Left(error) : Assert.fail(error.toString());
       case Right(actual) : Assert.same(expected, actual);
     };

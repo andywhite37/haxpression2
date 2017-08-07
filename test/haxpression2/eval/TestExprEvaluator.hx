@@ -8,7 +8,6 @@ import haxpression2.parse.ParseMeta.create as meta;
 import haxpression2.simple.FloatExpr;
 
 import TestHelper.assertParseEval;
-import TestHelper.assertRoundTrip;
 
 class TestExprEvaluator {
   public function new() {}

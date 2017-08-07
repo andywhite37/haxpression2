@@ -103,25 +103,22 @@ class FloatExprs {
     return value.render(Std.string);
   }
 
-  public static function toString(expr : FloatExpr) : String {
-    return expr.render(
-      value -> value.render(Std.string)
-    );
+  public static function render(expr : FloatExpr) : String {
+    return expr.render(valueToString);
   }
 
   public static function parse(input : String, options: FloatParserOptions) : FloatParseResult {
     return ExprParser.parse(input, options);
   }
 
-  public static function roundTrip(input : String, options: FloatParserOptions) : FloatRoundTripResult {
-    return ExprParser.parse(input, options)
-      .map(ae -> toString(ae.expr));
+  public static function format(input : String, options: FloatParserOptions) : FloatRoundTripResult {
+    return ExprRenderer.format(input, options, valueToString);
   }
 
   public static function parseEval(input: String, parserOptions: FloatParserOptions, evalOptions: FloatEvalOptions) : FloatParseEvalResult {
     return switch ExprParser.parse(input, parserOptions) {
       case Left(parseError) : ParseError(parseError);
-      case Right(expr) : switch expr.eval(evalOptions) {
+      case Right(ae) : switch ae.eval(evalOptions) {
         case Left(errors) : EvalErrors(errors);
         case Right(value) : Success(value);
       };

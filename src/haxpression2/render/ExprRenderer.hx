@@ -1,8 +1,12 @@
 package haxpression2.render;
 
+import thx.Either;
+using thx.Eithers;
 using thx.Strings;
 
 import haxpression2.Expr;
+import haxpression2.parse.ExprParser;
+import haxpression2.parse.ParseError;
 
 class ExprRenderer {
   public static function render<V, A>(expr : Expr<V, A>, valueToString : V -> String) : String {
@@ -37,6 +41,10 @@ class ExprRenderer {
         };
         '$leftStrSafe $operator $rightStrSafe';
     }
+  }
+
+  public static function format<V, D, A>(input : String, parserOptions : ExprParserOptions<V, D, A>, valueToString : V -> String) : Either<ParseError<AnnotatedExpr<V, A>>, String> {
+    return ExprParser.parse(input, parserOptions).map(ae -> render(ae.expr, valueToString));
   }
 }
 
