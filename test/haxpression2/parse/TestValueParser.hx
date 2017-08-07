@@ -1,4 +1,4 @@
-package haxpression2;
+package haxpression2.parse;
 
 import utest.Assert;
 
@@ -7,7 +7,7 @@ using Parsihax;
 import thx.Eithers;
 
 import haxpression2.Value;
-import haxpression2.ValueParser;
+import haxpression2.parse.ValueParser;
 
 class TestValueParser {
   var valueParser : Parser<Value<Float>>;

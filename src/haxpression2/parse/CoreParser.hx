@@ -1,4 +1,4 @@
-package haxpression2;
+package haxpression2.parse;
 
 using thx.Strings;
 

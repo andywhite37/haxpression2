@@ -1,4 +1,4 @@
-package haxpression2;
+package haxpression2.simple;
 
 using thx.Arrays;
 import thx.Either;
@@ -9,11 +9,15 @@ import thx.Validation.*;
 
 import haxpression2.BinOp;
 using haxpression2.Expr;
-import haxpression2.ExprParser;
 import haxpression2.UnOp;
 using haxpression2.Value;
-import haxpression2.error.EvalError;
-import haxpression2.error.ParseError;
+using haxpression2.eval.ExprEvaluator;
+import haxpression2.eval.EvalError;
+import haxpression2.parse.ExprParser;
+import haxpression2.parse.ParseError;
+import haxpression2.parse.ParseMeta;
+using haxpression2.render.ExprRenderer;
+using haxpression2.render.ValueRenderer;
 
 typedef FloatValue = Value<Float>;
 typedef FloatExpr = Expr<FloatValue, ParseMeta>;
@@ -96,12 +100,12 @@ class FloatExprs {
   }
 
   public static function valueToString(value : Value<Float>) : String {
-    return value.renderString(Std.string);
+    return value.render(Std.string);
   }
 
   public static function toString(expr : FloatExpr) : String {
-    return expr.renderString(
-      value -> value.renderString(Std.string)
+    return expr.render(
+      value -> value.render(Std.string)
     );
   }
 
@@ -117,7 +121,7 @@ class FloatExprs {
   public static function parseEval(input: String, parserOptions: FloatParserOptions, evalOptions: FloatEvalOptions) : FloatParseEvalResult {
     return switch ExprParser.parse(input, parserOptions) {
       case Left(parseError) : ParseError(parseError);
-      case Right(expr) : switch AnnotatedExpr.eval(expr, evalOptions) {
+      case Right(expr) : switch expr.eval(evalOptions) {
         case Left(errors) : EvalErrors(errors);
         case Right(value) : Success(value);
       };

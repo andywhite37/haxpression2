@@ -1,4 +1,4 @@
-package haxpression2;
+package haxpression2.parse;
 
 using thx.Arrays;
 import thx.Either;
@@ -6,10 +6,10 @@ import thx.Either;
 import Parsihax.*;
 using Parsihax;
 
-import haxpression2.CoreParser.ows;
 import haxpression2.Expr;
 import haxpression2.Value;
-import haxpression2.error.ParseError;
+import haxpression2.parse.CoreParser.ows;
+import haxpression2.parse.ParseError;
 
 typedef ExprParserOptions<V, D, A> = {
   variableNameRegexp: EReg,

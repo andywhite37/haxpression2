@@ -14,17 +14,6 @@ class Values {
   public static var NA_STR = "NA";
   public static var NM_STR = "NM";
 
-  public static function renderString<N>(value : Value<N>, nToString : N -> String) : String {
-    return switch value {
-      case VNA: NA_STR;
-      case VNM: NM_STR;
-      case VInt(v) : Std.string(v);
-      case VNum(v) : nToString(v);
-      case VStr(v) : '"$v"';
-      case VBool(v) : v ? "true" : "false";
-    }
-  }
-
   public static function int<N>(v : Int) : Value<N> {
     return VInt(v);
   }

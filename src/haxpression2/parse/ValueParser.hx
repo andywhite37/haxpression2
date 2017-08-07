@@ -1,13 +1,13 @@
-package haxpression2;
+package haxpression2.parse;
 
 import thx.Either;
 
 import Parsihax.*;
 using Parsihax;
 
-import haxpression2.CoreParser as C;
 import haxpression2.Value;
-import haxpression2.error.ParseError;
+import haxpression2.parse.CoreParser as C;
+import haxpression2.parse.ParseError;
 
 typedef ValueParserOptions<N> = {
   parseDecimal : String -> N

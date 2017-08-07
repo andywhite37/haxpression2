@@ -1,4 +1,4 @@
-package haxpression2.error;
+package haxpression2.eval;
 
 import haxe.PosInfos;
 import haxe.CallStack;
