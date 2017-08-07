@@ -11,11 +11,11 @@ import haxpression2.Value;
 import haxpression2.parse.CoreParser.ows;
 import haxpression2.parse.ParseError;
 
-typedef ExprParserOptions<V, D, A> = {
+typedef ExprParserOptions<V, N, A> = {
   variableNameRegexp: EReg,
   functionNameRegexp: EReg,
-  parseDecimal: String -> D,
-  convertValue: Value<D> -> V,
+  parseDecimal: String -> N,
+  convertValue: Value<N> -> V,
   binOps: Array<BinOp>,
   unOps: {
     pre: Array<UnOp>,

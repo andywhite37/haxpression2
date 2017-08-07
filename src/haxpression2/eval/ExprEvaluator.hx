@@ -9,6 +9,8 @@ import thx.Validation;
 import thx.Validation.*;
 
 import haxpression2.Expr;
+import haxpression2.parse.ExprParser;
+import haxpression2.parse.ParseError;
 
 /**
  * Function for evaluating a unary operator expression (VNel allows for failures)
@@ -41,6 +43,12 @@ typedef EvalOptions<Expr, Error, V, A> = {
 };
 
 typedef EvalResult<Expr, Error, V> = VNel<{ expr: Expr, error: Error }, V>;
+
+enum ParseEvalResult<Expr, ParseError, EvalError, V> {
+  ParseError(error : ParseError);
+  EvalErrors(errors : Nel<{ expr: Expr, error: EvalError }>);
+  Success(value : V);
+}
 
 class ExprEvaluator {
   public static function eval<Error, V, A>(expr : Expr<V, A>, options: EvalOptions<Expr<V, A>, Error, V, A>) : EvalResult<Expr<V, A>, Error, V> {
@@ -79,6 +87,20 @@ class ExprEvaluator {
             Nel.semigroup()
           ).flatMapV(identity)
         );
+    };
+  }
+
+  public static function parseEval<V, N, A>(
+    input: String,
+    parserOptions: ExprParserOptions<V, N, A>,
+    evalOptions: EvalOptions<Expr<V, A>, EvalError<Expr<V, A>>, V, A>
+  ) : ParseEvalResult<Expr<V, A>, ParseError<AnnotatedExpr<V, A>>, EvalError<Expr<V, A>>, V> {
+    return switch ExprParser.parse(input, parserOptions) {
+      case Left(parseError) : ParseError(parseError);
+      case Right(ae) : switch eval(ae.expr, evalOptions) {
+        case Left(errors) : EvalErrors(errors);
+        case Right(value) : Success(value);
+      };
     };
   }
 }
@@ -120,6 +142,20 @@ class AnnotatedExprEvaluator {
           )
           .flatMapV(identity)
         );
+    };
+  }
+
+  public static function parseEval<V, N, A>(
+    input: String,
+    parserOptions: ExprParserOptions<V, N, A>,
+    evalOptions: EvalOptions<AnnotatedExpr<V, A>, EvalError<AnnotatedExpr<V, A>>, V, A>
+  ) : ParseEvalResult<AnnotatedExpr<V, A>, ParseError<AnnotatedExpr<V, A>>, EvalError<AnnotatedExpr<V, A>>, V> {
+    return switch ExprParser.parse(input, parserOptions) {
+      case Left(parseError) : ParseError(parseError);
+      case Right(ae) : switch eval(ae, evalOptions) {
+        case Left(errors) : EvalErrors(errors);
+        case Right(value) : Success(value);
+      };
     };
   }
 }

@@ -73,8 +73,8 @@ class TestHelper {
     };
   }
 
-  public static function assertFormat(expected : String, input : String, ?pos : haxe.PosInfos) : Void {
-    switch FloatExprs.format(input, getTestParserOptions()) {
+  public static function assertParseRender(expected : String, input : String, ?pos : haxe.PosInfos) : Void {
+    switch FloatExprs.parseRender(input, getTestParserOptions()) {
       case Left(error) : Assert.fail(error.toString());
       case Right(actual) : Assert.same(expected, actual);
     };
@@ -85,7 +85,7 @@ class TestHelper {
   }
 
   static function evalErrorToString(data: { expr: FloatAnnotatedExpr, error : FloatEvalError }) : String {
-    return data.error.getString(ae -> ae.render(FloatExprs.valueToString, meta -> meta.toString()));
+    return data.error.getString(ae -> ae.render(FloatExprs.renderValue, meta -> meta.toString()));
   }
 
   public static function testParseEval(input : String) : VNel<String, Value<Float>> {
@@ -106,7 +106,7 @@ class TestHelper {
   public static function traceExpr(input : String, ?pos : haxe.PosInfos) : Void {
     switch testParse(input) {
       case Left(error) : trace(error.toString(), pos);
-      case Right(value) : trace(value.render(FloatExprs.valueToString, a -> a.toString()), pos);
+      case Right(value) : trace(value.render(FloatExprs.renderValue, a -> a.toString()), pos);
     };
   }
 

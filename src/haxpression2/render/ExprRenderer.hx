@@ -43,7 +43,7 @@ class ExprRenderer {
     }
   }
 
-  public static function format<V, D, A>(input : String, parserOptions : ExprParserOptions<V, D, A>, valueToString : V -> String) : Either<ParseError<AnnotatedExpr<V, A>>, String> {
+  public static function parseRender<V, D, A>(input : String, parserOptions : ExprParserOptions<V, D, A>, valueToString : V -> String) : Either<ParseError<AnnotatedExpr<V, A>>, String> {
     return ExprParser.parse(input, parserOptions).map(ae -> render(ae.expr, valueToString));
   }
 }

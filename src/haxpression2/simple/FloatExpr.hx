@@ -33,14 +33,9 @@ typedef FloatEvalFunc = EvalFunc<FloatValue>;
 typedef FloatEvalError = EvalError<FloatAnnotatedExpr>;
 typedef FloatEvalOptions = EvalOptions<FloatAnnotatedExpr, FloatEvalError, FloatValue, ParseMeta>;
 typedef FloatEvalResult = EvalResult<FloatAnnotatedExpr, FloatEvalError, FloatValue>;
+typedef FloatParseEvalResult = ParseEvalResult<FloatAnnotatedExpr, FloatParseError, FloatEvalError, FloatValue>;
 
-enum FloatParseEvalResult {
-  ParseError(error : FloatParseError);
-  EvalErrors(errors : Nel<{ expr: FloatAnnotatedExpr, error: FloatEvalError }>);
-  Success(value : FloatValue);
-}
-
-typedef FloatRoundTripResult = Either<FloatParseError, String>;
+typedef FloatParseRenderResult = Either<FloatParseError, String>;
 
 class FloatExprs {
   // https://www.haskell.org/onlinereport/haskell2010/haskellch4.html#x10-820004.4.2
@@ -99,44 +94,27 @@ class FloatExprs {
     ];
   }
 
-  public static function valueToString(value : Value<Float>) : String {
+  public static function renderValue(value : Value<Float>) : String {
     return value.render(Std.string);
   }
 
-  public static function render(expr : FloatExpr) : String {
-    return expr.render(valueToString);
+  public static function renderExpr(expr : FloatExpr) : String {
+    return expr.render(renderValue);
   }
 
   public static function parse(input : String, options: FloatParserOptions) : FloatParseResult {
     return ExprParser.parse(input, options);
   }
 
-  public static function format(input : String, options: FloatParserOptions) : FloatRoundTripResult {
-    return ExprRenderer.format(input, options, valueToString);
+  public static function parseRender(input : String, options: FloatParserOptions) : FloatParseRenderResult {
+    return ExprRenderer.parseRender(input, options, renderValue);
   }
 
   public static function parseEval(input: String, parserOptions: FloatParserOptions, evalOptions: FloatEvalOptions) : FloatParseEvalResult {
-    return switch ExprParser.parse(input, parserOptions) {
-      case Left(parseError) : ParseError(parseError);
-      case Right(ae) : switch ae.eval(evalOptions) {
-        case Left(errors) : EvalErrors(errors);
-        case Right(value) : Success(value);
-      };
-    };
+    return AnnotatedExprEvaluator.parseEval(input, parserOptions, evalOptions);
   }
 
-  public static function ensureNumeric(value : Value<Float>) : Either<String, Value<Float>> {
-    return switch value {
-      case v = VNA : Right(v);
-      case v = VNM : Right(v);
-      case v = VInt(i) : Right(v);
-      case v = VNum(f) : Right(v);
-      case VStr(v) : Left('string value "$v" is not numeric');
-      case VBool(v) : Left('boolean value $v is not numeric');
-    };
-  }
-
-  public static function reduceValues(
+  public static function reduceValues(options: {
     values : Array<Value<Float>>,
     intInt : Int -> Int -> VNel<String, Value<Float>>,
     intFloat : Int -> Float -> VNel<String, Value<Float>>,
@@ -144,155 +122,185 @@ class FloatExprs {
     floatFloat : Float -> Float -> VNel<String, Value<Float>>,
     stringString : String -> String -> VNel<String, Value<Float>>,
     boolBool : Bool -> Bool -> VNel<String, Value<Float>>
-  ) : VNel<String, Value<Float>> {
-    return if (values.length == 0) {
+  }) : VNel<String, Value<Float>> {
+    return if (options.values.length == 0) {
       failureNel('cannot reduce empty list of values');
     } else {
-      values.tail().reduce(function(accVNel : VNel<String, Value<Float>>, value: Value<Float>) : VNel<String, Value<Float>> {
+      options.values.tail().reduce(function(accVNel : VNel<String, Value<Float>>, value: Value<Float>) : VNel<String, Value<Float>> {
         return accVNel.flatMapV(acc ->
           switch [acc, value] {
-            case [VInt(a), VInt(b)] : intInt(a, b);
-            case [VInt(a), VNum(b)] : intFloat(a, b);
-            case [VNum(a), VInt(b)] : floatInt(a, b);
-            case [VNum(a), VNum(b)] : floatFloat(a, b);
-            case [VStr(a), VStr(b)] : stringString(a, b);
-            case [VBool(a), VBool(b)] : boolBool(a, b);
-            case [l = _, r = _] : Validation.failureNel('cannot reduce values `$l` and `$r`');
+            case [VNA, _] : successNel(VNA);
+            case [_, VNA] : successNel(VNA);
+            case [VNM, _] : successNel(VNM);
+            case [_, VNM] : successNel(VNM);
+            case [VInt(a), VInt(b)] : options.intInt(a, b);
+            case [VInt(a), VNum(b)] : options.intFloat(a, b);
+            case [VNum(a), VInt(b)] : options.floatInt(a, b);
+            case [VNum(a), VNum(b)] : options.floatFloat(a, b);
+            case [VStr(a), VStr(b)] : options.stringString(a, b);
+            case [VBool(a), VBool(b)] : options.boolBool(a, b);
+            case [l = _, r = _] : failureNel('cannot combine values of incompatible types: `$l` and `$r`');
           }
         );
         return accVNel;
-      }, Validation.successNel(values.head()));
+      }, successNel(options.values.head()));
     }
   }
 
   public static function sum(values : Array<Value<Float>>) : VNel<String, Value<Float>> {
-    return reduceValues(
-      values,
-      (a, b) -> Validation.successNel(a + b).map(VInt),
-      (a, b) -> Validation.successNel(a + b).map(VNum),
-      (a, b) -> Validation.successNel(a + b).map(VNum),
-      (a, b) -> Validation.successNel(a + b).map(VNum),
-      (a, b) -> Validation.successNel(a + b).map(VStr),
-      (a, b) -> Validation.failureNel('cannot sum boolean values')
-    );
+    return reduceValues({
+      values: values,
+      intInt: (a, b) -> successNel(a + b).map(VInt),
+      intFloat: (a, b) -> successNel(a + b).map(VNum),
+      floatInt: (a, b) -> successNel(a + b).map(VNum),
+      floatFloat: (a, b) -> successNel(a + b).map(VNum),
+      stringString: (a, b) -> successNel(a + b).map(VStr),
+      boolBool: (a, b) -> failureNel('cannot sum boolean values')
+    });
   }
 
   public static function add(l : Value<Float>, r: Value<Float>) : VNel<String, Value<Float>> {
-    return reduceValues(
-      [l, r],
-      (a, b) -> Validation.successNel(a + b).map(VInt),
-      (a, b) -> Validation.successNel(a + b).map(VNum),
-      (a, b) -> Validation.successNel(a + b).map(VNum),
-      (a, b) -> Validation.successNel(a + b).map(VNum),
-      (a, b) -> Validation.successNel(a + b).map(VStr),
-      (a, b) -> Validation.failureNel('cannot add boolean values')
-    );
+    return reduceValues({
+      values: [l, r],
+      intInt: (a, b) -> successNel(a + b).map(VInt),
+      intFloat: (a, b) -> successNel(a + b).map(VNum),
+      floatInt: (a, b) -> successNel(a + b).map(VNum),
+      floatFloat: (a, b) -> successNel(a + b).map(VNum),
+      stringString: (a, b) -> successNel(a + b).map(VStr),
+      boolBool: (a, b) -> failureNel('cannot add boolean values')
+    });
   }
 
   public static function sub(l : Value<Float>, r: Value<Float>) : VNel<String, Value<Float>> {
-    return reduceValues(
-      [l, r],
-      (a, b) -> Validation.successNel(a - b).map(VInt),
-      (a, b) -> Validation.successNel(a - b).map(VNum),
-      (a, b) -> Validation.successNel(a - b).map(VNum),
-      (a, b) -> Validation.successNel(a - b).map(VNum),
-      (a, b) -> Validation.failureNel('cannot subtract string values'),
-      (a, b) -> Validation.failureNel('cannot subtract bool values')
-    );
+    return reduceValues({
+      values: [l, r],
+      intInt: (a, b) -> successNel(a - b).map(VInt),
+      intFloat: (a, b) -> successNel(a - b).map(VNum),
+      floatInt: (a, b) -> successNel(a - b).map(VNum),
+      floatFloat: (a, b) -> successNel(a - b).map(VNum),
+      stringString: (a, b) -> failureNel('cannot subtract string values'),
+      boolBool: (a, b) -> failureNel('cannot subtract bool values')
+  });
   }
 
   public static function mul(l : Value<Float>, r: Value<Float>) : VNel<String, Value<Float>> {
-    return reduceValues(
-      [l, r],
-      (a, b) -> Validation.successNel(a * b).map(VInt),
-      (a, b) -> Validation.successNel(a * b).map(VNum),
-      (a, b) -> Validation.successNel(a * b).map(VNum),
-      (a, b) -> Validation.successNel(a * b).map(VNum),
-      (a, b) -> Validation.failureNel('cannot multiply string values'),
-      (a, b) -> Validation.failureNel('cannot multiply bool values')
-    );
+    return reduceValues({
+      values: [l, r],
+      intInt: (a, b) -> successNel(a * b).map(VInt),
+      intFloat: (a, b) -> successNel(a * b).map(VNum),
+      floatInt: (a, b) -> successNel(a * b).map(VNum),
+      floatFloat: (a, b) -> successNel(a * b).map(VNum),
+      stringString: (a, b) -> failureNel('cannot multiply string values'),
+      boolBool: (a, b) -> failureNel('cannot multiply bool values')
+    });
   }
 
   public static function div(l : Value<Float>, r: Value<Float>) : VNel<String, Value<Float>> {
-    return reduceValues(
-      [l, r],
-      (a, b) -> b == 0 ? Validation.successNel(VNM) : Validation.successNel(a / b).map(VNum),
-      (a, b) -> b == 0 ? Validation.successNel(VNM) : Validation.successNel(a / b).map(VNum),
-      (a, b) -> b == 0 ? Validation.successNel(VNM) : Validation.successNel(a / b).map(VNum),
-      (a, b) -> b == 0 ? Validation.successNel(VNM) : Validation.successNel(a / b).map(VNum),
-      (a, b) -> Validation.failureNel('cannot divide string values'),
-      (a, b) -> Validation.failureNel('cannot divide bool values')
-    );
+    return reduceValues({
+      values: [l, r],
+      intInt: (a, b) -> b == 0 ? successNel(VNM) : successNel(a / b).map(VNum),
+      intFloat: (a, b) -> b == 0 ? successNel(VNM) : successNel(a / b).map(VNum),
+      floatInt: (a, b) -> b == 0 ? successNel(VNM) : successNel(a / b).map(VNum),
+      floatFloat: (a, b) -> b == 0 ? successNel(VNM) : successNel(a / b).map(VNum),
+      stringString: (a, b) -> failureNel('cannot divide string values'),
+      boolBool: (a, b) -> failureNel('cannot divide bool values')
+    });
   }
 
   public static function or(l : Value<Float>, r: Value<Float>) : VNel<String, Value<Float>> {
-    return switch [l, r] {
-      case [VBool(l), VBool(r)] : successNel(VBool(l || r));
-      case [l = _, r = _] : failureNel('cannot `or` non-bool values: $l and $r');
-    };
+    return reduceValues({
+      values: [l, r],
+      intInt: (a, b) -> failureNel('cannot `or` int and int values'),
+      intFloat: (a, b) -> failureNel('cannot `or` int and float values'),
+      floatInt: (a, b) -> failureNel('cannot `or` float and int values'),
+      floatFloat: (a, b) -> failureNel('cannot `or` float and float values'),
+      stringString: (a, b) -> failureNel('cannot `or` string and string values'),
+      boolBool: (a, b) -> successNel(a || b).map(VBool)
+    });
   }
 
   public static function and(l : Value<Float>, r: Value<Float>) : VNel<String, Value<Float>> {
-    return switch [l, r] {
-      case [VBool(l), VBool(r)] : successNel(VBool(l && r));
-      case [l = _, r = _] : failureNel('cannot `and` non-bool values: $l and $r');
-    };
+    return reduceValues({
+      values: [l, r],
+      intInt: (a, b) -> failureNel('cannot `and` int and int'),
+      intFloat: (a, b) -> failureNel('cannot `and` int and float'),
+      floatInt: (a, b) -> failureNel('cannot `and` float and int'),
+      floatFloat: (a, b) -> failureNel('cannot `and` float and float'),
+      stringString: (a, b) -> failureNel('cannot `and` string and string'),
+      boolBool: (a, b) -> successNel(a && b).map(VBool)
+    });
   }
 
   public static function eq(l : Value<Float>, r: Value<Float>) : VNel<String, Value<Float>> {
-    return switch [l, r] {
-      case [VInt(l), VInt(r)] : successNel(VBool(l == r));
-      case [VNum(l), VNum(r)] : successNel(VBool(l == r));
-      case [VStr(l), VStr(r)] : successNel(VBool(l == r));
-      case [VBool(l), VBool(r)] : successNel(VBool(l == r));
-      case [l = _, r = _] : failureNel('cannot == values of different types');
-    };
+    return reduceValues({
+      values: [l, r],
+      intInt: (a, b) -> successNel(a == b).map(VBool),
+      intFloat: (a, b) -> successNel(a == b).map(VBool),
+      floatInt: (a, b) -> successNel(a == b).map(VBool),
+      floatFloat: (a, b) -> successNel(a == b).map(VBool),
+      stringString: (a, b) -> successNel(a == b).map(VBool),
+      boolBool: (a, b) -> successNel(a == b).map(VBool)
+    });
   }
 
   public static function neq(l : Value<Float>, r: Value<Float>) : VNel<String, Value<Float>> {
-    return switch [l, r] {
-      case [VInt(l), VInt(r)] : successNel(VBool(l != r));
-      case [VNum(l), VNum(r)] : successNel(VBool(l != r));
-      case [VStr(l), VStr(r)] : successNel(VBool(l != r));
-      case [VBool(l), VBool(r)] : successNel(VBool(l != r));
-      case [l = _, r = _] : failureNel('cannot != values of different types');
-    };
+    return reduceValues({
+      values: [l, r],
+      intInt: (a, b) -> successNel(a != b).map(VBool),
+      intFloat: (a, b) -> successNel(a != b).map(VBool),
+      floatInt: (a, b) -> successNel(a != b).map(VBool),
+      floatFloat: (a, b) -> successNel(a != b).map(VBool),
+      stringString: (a, b) -> successNel(a != b).map(VBool),
+      boolBool: (a, b) -> successNel(a != b).map(VBool)
+    });
   }
 
   public static function lt(l : Value<Float>, r: Value<Float>) : VNel<String, Value<Float>> {
-    return switch [l, r] {
-      case [VInt(l), VInt(r)] : successNel(VBool(l < r));
-      case [VNum(l), VNum(r)] : successNel(VBool(l < r));
-      case [VStr(l), VStr(r)] : successNel(VBool(l < r));
-      case [l = _, r = _] : failureNel('cannot < values of type $l and $r');
-    };
+    return reduceValues({
+      values: [l, r],
+      intInt: (a, b) -> successNel(a < b).map(VBool),
+      intFloat: (a, b) -> successNel(a < b).map(VBool),
+      floatInt: (a, b) -> successNel(a < b).map(VBool),
+      floatFloat: (a, b) -> successNel(a < b).map(VBool),
+      stringString: (a, b) -> successNel(a < b).map(VBool),
+      boolBool: (a, b) -> failureNel('cannot `<` bool and bool')
+    });
   }
 
   public static function lte(l : Value<Float>, r: Value<Float>) : VNel<String, Value<Float>> {
-    return switch [l, r] {
-      case [VInt(l), VInt(r)] : successNel(VBool(l <= r));
-      case [VNum(l), VNum(r)] : successNel(VBool(l <= r));
-      case [VStr(l), VStr(r)] : successNel(VBool(l <= r));
-      case [l = _, r = _] : failureNel('cannot <= values of type $l and $r');
-    };
+    return reduceValues({
+      values: [l, r],
+      intInt: (a, b) -> successNel(a <= b).map(VBool),
+      intFloat: (a, b) -> successNel(a <= b).map(VBool),
+      floatInt: (a, b) -> successNel(a <= b).map(VBool),
+      floatFloat: (a, b) -> successNel(a <= b).map(VBool),
+      stringString: (a, b) -> successNel(a <= b).map(VBool),
+      boolBool: (a, b) -> failureNel('cannot `<=` bool and bool')
+    });
   }
 
   public static function gt(l : Value<Float>, r: Value<Float>) : VNel<String, Value<Float>> {
-    return switch [l, r] {
-      case [VInt(l), VInt(r)] : successNel(VBool(l > r));
-      case [VNum(l), VNum(r)] : successNel(VBool(l > r));
-      case [VStr(l), VStr(r)] : successNel(VBool(l > r));
-      case [l = _, r = _] : failureNel('cannot > values of type $l and $r');
-    };
+    return reduceValues({
+      values: [l, r],
+      intInt: (a, b) -> successNel(a > b).map(VBool),
+      intFloat: (a, b) -> successNel(a > b).map(VBool),
+      floatInt: (a, b) -> successNel(a > b).map(VBool),
+      floatFloat: (a, b) -> successNel(a > b).map(VBool),
+      stringString: (a, b) -> successNel(a > b).map(VBool),
+      boolBool: (a, b) -> failureNel('cannot `>` bool and bool')
+    });
   }
 
   public static function gte(l : Value<Float>, r: Value<Float>) : VNel<String, Value<Float>> {
-    return switch [l, r] {
-      case [VInt(l), VInt(r)] : successNel(VBool(l >= r));
-      case [VNum(l), VNum(r)] : successNel(VBool(l >= r));
-      case [VStr(l), VStr(r)] : successNel(VBool(l >= r));
-      case [l = _, r = _] : failureNel('cannot >= values of type $l and $r');
-    };
+    return reduceValues({
+      values: [l, r],
+      intInt: (a, b) -> successNel(a >= b).map(VBool),
+      intFloat: (a, b) -> successNel(a >= b).map(VBool),
+      floatInt: (a, b) -> successNel(a >= b).map(VBool),
+      floatFloat: (a, b) -> successNel(a >= b).map(VBool),
+      stringString: (a, b) -> successNel(a >= b).map(VBool),
+      boolBool: (a, b) -> failureNel('cannot `>=` bool and bool')
+    });
   }
 
   public static function negate(operand : Value<Float>) : VNel<String, Value<Float>> {
