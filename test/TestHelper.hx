@@ -15,22 +15,23 @@ import haxpression2.parse.ExprParser;
 import haxpression2.parse.ParseMeta;
 using haxpression2.render.ExprRenderer;
 using haxpression2.render.ValueRenderer;
-import haxpression2.simple.FloatExpr;
+using haxpression2.simple.SimpleExpr;
+using haxpression2.simple.SimpleValue;
 
 class TestHelper {
-  public static function getTestParserOptions() : FloatParserOptions {
+  public static function getTestParserOptions() : SimpleParserOptions {
     return {
       variableNameRegexp: ~/[a-z][a-z0-9]*(?:!?[a-z0-9]+)?/i,
       functionNameRegexp: ~/[a-z]+/i,
-      binOps: FloatExprs.getStandardBinOps(),
-      unOps: FloatExprs.getStandardUnOps(),
+      binOps: SimpleExprs.getStandardBinOps(),
+      unOps: SimpleExprs.getStandardUnOps(),
       parseDecimal: Std.parseFloat,
       convertValue: thx.Functions.identity,
       annotate: ParseMeta.new
     };
   }
 
-  public static function getTestEvalOptions() : FloatEvalOptions {
+  public static function getTestEvalOptions() : SimpleEvalOptions {
     return {
       variables: [
         "a" => Values.int(0),
@@ -40,86 +41,86 @@ class TestHelper {
         "y" => Values.int(-10),
         "z" => Values.int(100)
       ],
-      unOps: FloatExprs.getStandardEvalUnOps(),
-      binOps: FloatExprs.getStandardEvalBinOps(),
-      functions: FloatExprs.getStandardEvalFunctions(),
+      unOps: SimpleExprs.getStandardEvalUnOps(),
+      binOps: SimpleExprs.getStandardEvalBinOps(),
+      functions: SimpleExprs.getStandardEvalFunctions(),
       onError: (error, expr) -> new EvalError(error, expr)
     };
   }
 
-  public static function getTestExprParser() : Parser<FloatAnnotatedExpr> {
+  public static function getTestExprParser() : Parser<SimpleAnnotatedExpr> {
     return ExprParser.create(getTestParserOptions()).expr;
   }
 
-  public static function testParse(input : String) : Either<FloatParseError, FloatAnnotatedExpr> {
-    return FloatExprs.parse(input, getTestParserOptions());
+  public static function testParseString(input : String) : Either<SimpleParseError, SimpleAnnotatedExpr> {
+    return SimpleExprs.parseString(input, getTestParserOptions());
   }
 
-  public static function assertParse(input : String, expected : FloatAnnotatedExpr, ?log : Bool, ?pos : haxe.PosInfos) : Void {
-    switch ExprParser.parse(input, TestHelper.getTestParserOptions()) {
+  public static function assertParseString(input : String, expected : SimpleAnnotatedExpr, ?log : Bool, ?pos : haxe.PosInfos) : Void {
+    switch ExprParser.parseString(input, TestHelper.getTestParserOptions()) {
       case Left(parseError) : Assert.fail(parseError.toString(), pos);
       case Right(actual) :
         if (log) {
           trace(input);
-          trace(actual.render(v -> v.render(Std.string), meta -> meta.toString()));
+          trace(actual.renderString(v -> v.renderString(), meta -> meta.toString()));
         }
         Assert.same(expected, actual, pos);
     }
   }
 
   public static function assertParseError(input : String, ?pos : haxe.PosInfos) : Void {
-    switch ExprParser.parse(input, TestHelper.getTestParserOptions()) {
+    switch ExprParser.parseString(input, TestHelper.getTestParserOptions()) {
       case Left(parseError) : Assert.pass(pos);
       case Right(_) : Assert.fail('$input should not have parsed', pos);
     };
   }
 
-  public static function assertParseRender(expected : String, input : String, ?pos : haxe.PosInfos) : Void {
-    switch FloatExprs.parseRender(input, getTestParserOptions()) {
+  public static function assertFormatString(expected : String, input : String, ?pos : haxe.PosInfos) : Void {
+    switch SimpleExprs.formatString(input, getTestParserOptions()) {
       case Left(error) : Assert.fail(error.toString());
       case Right(actual) : Assert.same(expected, actual);
     };
   }
 
-  static function evalErrorsToString(errors : Nel<{ expr: FloatAnnotatedExpr, error: FloatEvalError }>) : String {
+  static function evalErrorsToString(errors : Nel<{ expr: SimpleAnnotatedExpr, error: SimpleEvalError }>) : String {
     return errors.map(evalErrorToString).toArray().join("\n");
   }
 
-  static function evalErrorToString(data: { expr: FloatAnnotatedExpr, error : FloatEvalError }) : String {
-    return data.error.getString(ae -> ae.render(FloatExprs.renderValue, meta -> meta.toString()));
+  static function evalErrorToString(data: { expr: SimpleAnnotatedExpr, error : SimpleEvalError }) : String {
+    return data.error.getString(ae -> ae.renderString(SimpleValues.renderString, meta -> meta.toString()));
   }
 
-  public static function testParseEval(input : String) : VNel<String, Value<Float>> {
-    return switch FloatExprs.parseEval(input, getTestParserOptions(), getTestEvalOptions()) {
+  public static function testEvalString(input : String) : VNel<String, SimpleValue> {
+    return switch SimpleExprs.evalString(input, getTestParserOptions(), getTestEvalOptions()) {
       case ParseError(error) : failureNel(error.toString());
       case EvalErrors(errors) : failureNel(evalErrorsToString(errors));
       case Success(value) : successNel(value);
     };
   }
 
-  public static function assertParseEval(expected : Value<Float>, input : String, ?pos : haxe.PosInfos) : Void {
-    switch testParseEval(input) {
+  public static function assertEvalString(expected : SimpleValue, input : String, ?pos : haxe.PosInfos) : Void {
+    switch testEvalString(input) {
       case Left(errors) : Assert.fail(errors.toArray().map(err -> err.toString()).join("\n"), pos);
       case Right(actual) : Assert.same(expected, actual, pos);
     };
   }
 
   public static function traceExpr(input : String, ?pos : haxe.PosInfos) : Void {
-    switch testParse(input) {
+    switch testParseString(input) {
       case Left(error) : trace(error.toString(), pos);
-      case Right(value) : trace(value.render(FloatExprs.renderValue, a -> a.toString()), pos);
+      case Right(value) : trace(value.renderString(SimpleValues.renderString, a -> a.toString()), pos);
     };
   }
 
-  public static function assertExprVars(expected : Array<String>, input : String, ?pos : haxe.PosInfos) : Void {
-    switch testParse(input) {
+  public static function assertExprGetVars(expected : Array<String>, input : String, ?pos : haxe.PosInfos) : Void {
+    switch testParseString(input) {
       case Left(error) : trace(error.toString(), pos);
       case Right(ae) : Assert.same(expected, Exprs.getVars(ae.expr), pos);
     }
   }
 
-  public static function assertAnnotatedExprVars(expected : Map<String, Array<ParseMeta>>, input : String, ?pos : haxe.PosInfos) : Void {
-    switch testParse(input) {
+  public static function assertAnnotatedExprGetVars(expected : Map<String, Array<ParseMeta>>, input : String, ?pos : haxe.PosInfos) : Void {
+    switch testParseString(input) {
       case Left(error) : trace(error.toString(), pos);
       case Right(ae) : Assert.same(expected, AnnotatedExpr.getVars(ae), pos);
     }

@@ -11,6 +11,9 @@ class TestAll {
     runner.addCase(new haxpression2.parse.TestExprParser());
     runner.addCase(new haxpression2.parse.TestValueParser());
     runner.addCase(new haxpression2.render.TestExprRenderer());
+    runner.addCase(new haxpression2.schema.TestAnnotatedExprSchema());
+    runner.addCase(new haxpression2.schema.TestExprSchema());
+    runner.addCase(new haxpression2.schema.TestValueSchema());
     Report.create(runner);
     runner.run();
   }

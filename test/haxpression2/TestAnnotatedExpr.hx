@@ -2,20 +2,20 @@ package haxpression2;
 
 import haxpression2.parse.ParseMeta.create as meta;
 
-import TestHelper.assertAnnotatedExprVars;
+import TestHelper.assertAnnotatedExprGetVars;
 
 class TestAnnotatedExpr {
   public function new() {}
 
   public function testGetVars() : Void {
-    assertAnnotatedExprVars(new Map(), "1 + 2 + 3 / 4");
+    assertAnnotatedExprGetVars(new Map(), "1 + 2 + 3 / 4");
 
-    assertAnnotatedExprVars([
+    assertAnnotatedExprGetVars([
       "a" => [meta(4, 1, 5)],
       "b" => [meta(12, 1, 13)]
     ], "1 + a + 3 / b + NA");
 
-    assertAnnotatedExprVars([
+    assertAnnotatedExprGetVars([
       "a" => [
         meta(0, 1, 1),
         meta(40, 1, 41)

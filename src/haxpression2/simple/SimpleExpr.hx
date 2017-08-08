@@ -18,26 +18,26 @@ import haxpression2.parse.ParseError;
 import haxpression2.parse.ParseMeta;
 using haxpression2.render.ExprRenderer;
 using haxpression2.render.ValueRenderer;
+import haxpression2.simple.SimpleValue;
 
-typedef FloatValue = Value<Float>;
-typedef FloatExpr = Expr<FloatValue, ParseMeta>;
-typedef FloatAnnotatedExpr = AnnotatedExpr<FloatValue, ParseMeta>;
+typedef SimpleExpr = Expr<SimpleValue, ParseMeta>;
+typedef SimpleAnnotatedExpr = AnnotatedExpr<SimpleValue, ParseMeta>;
 
-typedef FloatParserOptions = ExprParserOptions<FloatValue, Float, ParseMeta>;
-typedef FloatParseError = ParseError<FloatAnnotatedExpr>;
-typedef FloatParseResult = Either<FloatParseError, FloatAnnotatedExpr>;
+typedef SimpleParserOptions = ExprParserOptions<SimpleValue, Float, ParseMeta>;
+typedef SimpleParseError = ParseError<SimpleAnnotatedExpr>;
+typedef SimpleParseResult = Either<SimpleParseError, SimpleAnnotatedExpr>;
 
-typedef FloatEvalUnOp = EvalUnOp<FloatValue>;
-typedef FloatEvalBinOp = EvalBinOp<FloatValue>;
-typedef FloatEvalFunc = EvalFunc<FloatValue>;
-typedef FloatEvalError = EvalError<FloatAnnotatedExpr>;
-typedef FloatEvalOptions = EvalOptions<FloatAnnotatedExpr, FloatEvalError, FloatValue, ParseMeta>;
-typedef FloatEvalResult = EvalResult<FloatAnnotatedExpr, FloatEvalError, FloatValue>;
-typedef FloatParseEvalResult = ParseEvalResult<FloatAnnotatedExpr, FloatParseError, FloatEvalError, FloatValue>;
+typedef SimpleEvalUnOp = EvalUnOp<SimpleValue>;
+typedef SimpleEvalBinOp = EvalBinOp<SimpleValue>;
+typedef SimpleEvalFunc = EvalFunc<SimpleValue>;
+typedef SimpleEvalError = EvalError<SimpleAnnotatedExpr>;
+typedef SimpleEvalOptions = EvalOptions<SimpleAnnotatedExpr, SimpleEvalError, SimpleValue, ParseMeta>;
+typedef SimpleEvalResult = EvalResult<SimpleAnnotatedExpr, SimpleEvalError, SimpleValue>;
+typedef SimpleParseEvalResult = ParseEvalResult<SimpleAnnotatedExpr, SimpleParseError, SimpleEvalError, SimpleValue>;
 
-typedef FloatParseRenderResult = Either<FloatParseError, String>;
+typedef SimpleParseRenderResult = Either<SimpleParseError, String>;
 
-class FloatExprs {
+class SimpleExprs {
   // https://www.haskell.org/onlinereport/haskell2010/haskellch4.html#x10-820004.4.2
   public static function getStandardBinOps() : Array<BinOp> {
     return [
@@ -49,7 +49,7 @@ class FloatExprs {
     ];
   }
 
-  public static function getStandardEvalBinOps() : Map<String, EvalBinOp<Value<Float>>> {
+  public static function getStandardEvalBinOps() : Map<String, EvalBinOp<SimpleValue>> {
     return [
       "*" => mul,
       "/" => div,
@@ -78,7 +78,7 @@ class FloatExprs {
     };
   }
 
-  public static function getStandardEvalUnOps() : { pre: Map<String, FloatEvalUnOp>, post: Map<String, FloatEvalUnOp> } {
+  public static function getStandardEvalUnOps() : { pre: Map<String, SimpleEvalUnOp>, post: Map<String, SimpleEvalUnOp> } {
     return {
       pre: [
         "-" => negate,
@@ -88,45 +88,41 @@ class FloatExprs {
     };
   }
 
-  public static function getStandardEvalFunctions() : Map<String, FloatEvalFunc> {
+  public static function getStandardEvalFunctions() : Map<String, SimpleEvalFunc> {
     return [
       "sum" => sum
     ];
   }
 
-  public static function renderValue(value : Value<Float>) : String {
-    return value.render(Std.string);
+  public static function renderString(expr : SimpleExpr) : String {
+    return expr.renderString(SimpleValues.renderString);
   }
 
-  public static function renderExpr(expr : FloatExpr) : String {
-    return expr.render(renderValue);
+  public static function parseString(input : String, options: SimpleParserOptions) : SimpleParseResult {
+    return ExprParser.parseString(input, options);
   }
 
-  public static function parse(input : String, options: FloatParserOptions) : FloatParseResult {
-    return ExprParser.parse(input, options);
+  public static function formatString(input : String, options: SimpleParserOptions) : SimpleParseRenderResult {
+    return ExprRenderer.formatString(input, options, SimpleValues.renderString);
   }
 
-  public static function parseRender(input : String, options: FloatParserOptions) : FloatParseRenderResult {
-    return ExprRenderer.parseRender(input, options, renderValue);
-  }
-
-  public static function parseEval(input: String, parserOptions: FloatParserOptions, evalOptions: FloatEvalOptions) : FloatParseEvalResult {
-    return AnnotatedExprEvaluator.parseEval(input, parserOptions, evalOptions);
+  public static function evalString(input: String, parserOptions: SimpleParserOptions, evalOptions: SimpleEvalOptions) : SimpleParseEvalResult {
+    return AnnotatedExprEvaluator.evalString(input, parserOptions, evalOptions);
   }
 
   public static function reduceValues(options: {
-    values : Array<Value<Float>>,
-    intInt : Int -> Int -> VNel<String, Value<Float>>,
-    intFloat : Int -> Float -> VNel<String, Value<Float>>,
-    floatInt : Float -> Int -> VNel<String, Value<Float>>,
-    floatFloat : Float -> Float -> VNel<String, Value<Float>>,
-    stringString : String -> String -> VNel<String, Value<Float>>,
-    boolBool : Bool -> Bool -> VNel<String, Value<Float>>
-  }) : VNel<String, Value<Float>> {
+    values : Array<SimpleValue>,
+    intInt : Int -> Int -> VNel<String, SimpleValue>,
+    intFloat : Int -> Float -> VNel<String, SimpleValue>,
+    floatInt : Float -> Int -> VNel<String, SimpleValue>,
+    floatFloat : Float -> Float -> VNel<String, SimpleValue>,
+    stringString : String -> String -> VNel<String, SimpleValue>,
+    boolBool : Bool -> Bool -> VNel<String, SimpleValue>
+  }) : VNel<String, SimpleValue> {
     return if (options.values.length == 0) {
       failureNel('cannot reduce empty list of values');
     } else {
-      options.values.tail().reduce(function(accVNel : VNel<String, Value<Float>>, value: Value<Float>) : VNel<String, Value<Float>> {
+      options.values.tail().reduce(function(accVNel : VNel<String, SimpleValue>, value: SimpleValue) : VNel<String, SimpleValue> {
         return accVNel.flatMapV(acc ->
           switch [acc, value] {
             case [VNA, _] : successNel(VNA);
@@ -147,7 +143,7 @@ class FloatExprs {
     }
   }
 
-  public static function sum(values : Array<Value<Float>>) : VNel<String, Value<Float>> {
+  public static function sum(values : Array<SimpleValue>) : VNel<String, SimpleValue> {
     return reduceValues({
       values: values,
       intInt: (a, b) -> successNel(a + b).map(VInt),
@@ -159,7 +155,7 @@ class FloatExprs {
     });
   }
 
-  public static function add(l : Value<Float>, r: Value<Float>) : VNel<String, Value<Float>> {
+  public static function add(l : SimpleValue, r: SimpleValue) : VNel<String, SimpleValue> {
     return reduceValues({
       values: [l, r],
       intInt: (a, b) -> successNel(a + b).map(VInt),
@@ -171,7 +167,7 @@ class FloatExprs {
     });
   }
 
-  public static function sub(l : Value<Float>, r: Value<Float>) : VNel<String, Value<Float>> {
+  public static function sub(l : SimpleValue, r: SimpleValue) : VNel<String, SimpleValue> {
     return reduceValues({
       values: [l, r],
       intInt: (a, b) -> successNel(a - b).map(VInt),
@@ -183,7 +179,7 @@ class FloatExprs {
   });
   }
 
-  public static function mul(l : Value<Float>, r: Value<Float>) : VNel<String, Value<Float>> {
+  public static function mul(l : SimpleValue, r: SimpleValue) : VNel<String, SimpleValue> {
     return reduceValues({
       values: [l, r],
       intInt: (a, b) -> successNel(a * b).map(VInt),
@@ -195,7 +191,7 @@ class FloatExprs {
     });
   }
 
-  public static function div(l : Value<Float>, r: Value<Float>) : VNel<String, Value<Float>> {
+  public static function div(l : SimpleValue, r: SimpleValue) : VNel<String, SimpleValue> {
     return reduceValues({
       values: [l, r],
       intInt: (a, b) -> b == 0 ? successNel(VNM) : successNel(a / b).map(VNum),
@@ -207,7 +203,7 @@ class FloatExprs {
     });
   }
 
-  public static function or(l : Value<Float>, r: Value<Float>) : VNel<String, Value<Float>> {
+  public static function or(l : SimpleValue, r: SimpleValue) : VNel<String, SimpleValue> {
     return reduceValues({
       values: [l, r],
       intInt: (a, b) -> failureNel('cannot `or` int and int values'),
@@ -219,7 +215,7 @@ class FloatExprs {
     });
   }
 
-  public static function and(l : Value<Float>, r: Value<Float>) : VNel<String, Value<Float>> {
+  public static function and(l : SimpleValue, r: SimpleValue) : VNel<String, SimpleValue> {
     return reduceValues({
       values: [l, r],
       intInt: (a, b) -> failureNel('cannot `and` int and int'),
@@ -231,7 +227,7 @@ class FloatExprs {
     });
   }
 
-  public static function eq(l : Value<Float>, r: Value<Float>) : VNel<String, Value<Float>> {
+  public static function eq(l : SimpleValue, r: SimpleValue) : VNel<String, SimpleValue> {
     return reduceValues({
       values: [l, r],
       intInt: (a, b) -> successNel(a == b).map(VBool),
@@ -243,7 +239,7 @@ class FloatExprs {
     });
   }
 
-  public static function neq(l : Value<Float>, r: Value<Float>) : VNel<String, Value<Float>> {
+  public static function neq(l : SimpleValue, r: SimpleValue) : VNel<String, SimpleValue> {
     return reduceValues({
       values: [l, r],
       intInt: (a, b) -> successNel(a != b).map(VBool),
@@ -255,7 +251,7 @@ class FloatExprs {
     });
   }
 
-  public static function lt(l : Value<Float>, r: Value<Float>) : VNel<String, Value<Float>> {
+  public static function lt(l : SimpleValue, r: SimpleValue) : VNel<String, SimpleValue> {
     return reduceValues({
       values: [l, r],
       intInt: (a, b) -> successNel(a < b).map(VBool),
@@ -267,7 +263,7 @@ class FloatExprs {
     });
   }
 
-  public static function lte(l : Value<Float>, r: Value<Float>) : VNel<String, Value<Float>> {
+  public static function lte(l : SimpleValue, r: SimpleValue) : VNel<String, SimpleValue> {
     return reduceValues({
       values: [l, r],
       intInt: (a, b) -> successNel(a <= b).map(VBool),
@@ -279,7 +275,7 @@ class FloatExprs {
     });
   }
 
-  public static function gt(l : Value<Float>, r: Value<Float>) : VNel<String, Value<Float>> {
+  public static function gt(l : SimpleValue, r: SimpleValue) : VNel<String, SimpleValue> {
     return reduceValues({
       values: [l, r],
       intInt: (a, b) -> successNel(a > b).map(VBool),
@@ -291,7 +287,7 @@ class FloatExprs {
     });
   }
 
-  public static function gte(l : Value<Float>, r: Value<Float>) : VNel<String, Value<Float>> {
+  public static function gte(l : SimpleValue, r: SimpleValue) : VNel<String, SimpleValue> {
     return reduceValues({
       values: [l, r],
       intInt: (a, b) -> successNel(a >= b).map(VBool),
@@ -303,7 +299,7 @@ class FloatExprs {
     });
   }
 
-  public static function negate(operand : Value<Float>) : VNel<String, Value<Float>> {
+  public static function negate(operand : SimpleValue) : VNel<String, SimpleValue> {
     return switch operand {
       case VNA : successNel(VNA);
       case VNM : successNel(VNM);
@@ -314,7 +310,7 @@ class FloatExprs {
     };
   }
 
-  public static function increment(operand : Value<Float>) : VNel<String, Value<Float>> {
+  public static function increment(operand : SimpleValue) : VNel<String, SimpleValue> {
     return switch operand {
       case VNA : successNel(VNA);
       case VNM : successNel(VNM);
@@ -325,7 +321,7 @@ class FloatExprs {
     };
   }
 
-  public static function not(operand : Value<Float>) : VNel<String, Value<Float>> {
+  public static function not(operand : SimpleValue) : VNel<String, SimpleValue> {
     return switch operand {
       case VNA : failureNel('cannot `not` NA value');
       case VNM : failureNel('cannot `not` NM value');

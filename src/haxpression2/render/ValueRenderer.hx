@@ -3,7 +3,7 @@ package haxpression2.render;
 import haxpression2.Value;
 
 class ValueRenderer {
-  public static function render<N>(value : Value<N>, nToString : N -> String) : String {
+  public static function renderString<N>(value : Value<N>, nToString : N -> String) : String {
     return switch value {
       case VNA : Values.NA_STR;
       case VNM : Values.NM_STR;

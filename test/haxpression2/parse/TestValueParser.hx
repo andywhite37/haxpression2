@@ -65,7 +65,7 @@ class TestValueParser {
   }
 
   public function testError() : Void {
-    Assert.isTrue(Eithers.isLeft(ValueParser.parse("x", TestHelper.getTestParserOptions())));
-    Assert.isTrue(Eithers.isLeft(ValueParser.parse("0.1.1", TestHelper.getTestParserOptions())));
+    Assert.isTrue(Eithers.isLeft(ValueParser.parseString("x", TestHelper.getTestParserOptions())));
+    Assert.isTrue(Eithers.isLeft(ValueParser.parseString("0.1.1", TestHelper.getTestParserOptions())));
   }
 }

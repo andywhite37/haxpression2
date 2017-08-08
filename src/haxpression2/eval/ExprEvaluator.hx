@@ -90,12 +90,12 @@ class ExprEvaluator {
     };
   }
 
-  public static function parseEval<V, N, A>(
+  public static function evalString<V, N, A>(
     input: String,
     parserOptions: ExprParserOptions<V, N, A>,
     evalOptions: EvalOptions<Expr<V, A>, EvalError<Expr<V, A>>, V, A>
   ) : ParseEvalResult<Expr<V, A>, ParseError<AnnotatedExpr<V, A>>, EvalError<Expr<V, A>>, V> {
-    return switch ExprParser.parse(input, parserOptions) {
+    return switch ExprParser.parseString(input, parserOptions) {
       case Left(parseError) : ParseError(parseError);
       case Right(ae) : switch eval(ae.expr, evalOptions) {
         case Left(errors) : EvalErrors(errors);
@@ -145,12 +145,12 @@ class AnnotatedExprEvaluator {
     };
   }
 
-  public static function parseEval<V, N, A>(
+  public static function evalString<V, N, A>(
     input: String,
     parserOptions: ExprParserOptions<V, N, A>,
     evalOptions: EvalOptions<AnnotatedExpr<V, A>, EvalError<AnnotatedExpr<V, A>>, V, A>
   ) : ParseEvalResult<AnnotatedExpr<V, A>, ParseError<AnnotatedExpr<V, A>>, EvalError<AnnotatedExpr<V, A>>, V> {
-    return switch ExprParser.parse(input, parserOptions) {
+    return switch ExprParser.parseString(input, parserOptions) {
       case Left(parseError) : ParseError(parseError);
       case Right(ae) : switch eval(ae, evalOptions) {
         case Left(errors) : EvalErrors(errors);

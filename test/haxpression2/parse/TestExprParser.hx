@@ -8,7 +8,7 @@ import haxpression2.parse.ParseMeta;
 import haxpression2.parse.ParseMeta.create as meta;
 using haxpression2.Value;
 
-import TestHelper.assertParse;
+import TestHelper.assertParseString;
 import TestHelper.assertParseError;
 
 class TestExprParser {
@@ -32,15 +32,15 @@ class TestExprParser {
   }
 
   public function testLitNANM() : Void {
-    assertParse("NA", ae(ELit(VNA), meta(0, 1, 1)));
-    assertParse("na", ae(ELit(VNA), meta(0, 1, 1)));
-    assertParse("Na", ae(ELit(VNA), meta(0, 1, 1)));
-    assertParse("nA", ae(ELit(VNA), meta(0, 1, 1)));
-    assertParse("NM", ae(ELit(VNM), meta(0, 1, 1)));
-    assertParse("nm", ae(ELit(VNM), meta(0, 1, 1)));
-    assertParse("Nm", ae(ELit(VNM), meta(0, 1, 1)));
-    assertParse("nM", ae(ELit(VNM), meta(0, 1, 1)));
-    assertParse(
+    assertParseString("NA", ae(ELit(VNA), meta(0, 1, 1)));
+    assertParseString("na", ae(ELit(VNA), meta(0, 1, 1)));
+    assertParseString("Na", ae(ELit(VNA), meta(0, 1, 1)));
+    assertParseString("nA", ae(ELit(VNA), meta(0, 1, 1)));
+    assertParseString("NM", ae(ELit(VNM), meta(0, 1, 1)));
+    assertParseString("nm", ae(ELit(VNM), meta(0, 1, 1)));
+    assertParseString("Nm", ae(ELit(VNM), meta(0, 1, 1)));
+    assertParseString("nM", ae(ELit(VNM), meta(0, 1, 1)));
+    assertParseString(
       "NA + NM",
       ae(
         EBinOp(
@@ -55,10 +55,10 @@ class TestExprParser {
   }
 
   public function testLitInt() : Void {
-    assertParse("0", ae(ELit(VInt(0)), meta(0, 1, 1)));
-    assertParse("1", ae(ELit(VInt(1)), meta(0, 1, 1)));
-    assertParse(" 1  ", ae(ELit(VInt(1)), meta(1, 1, 2)));
-    assertParse(" -1  ",
+    assertParseString("0", ae(ELit(VInt(0)), meta(0, 1, 1)));
+    assertParseString("1", ae(ELit(VInt(1)), meta(0, 1, 1)));
+    assertParseString(" 1  ", ae(ELit(VInt(1)), meta(1, 1, 2)));
+    assertParseString(" -1  ",
       ae(
         EUnOpPre(
           "-",
@@ -74,33 +74,33 @@ class TestExprParser {
   }
 
   public function testLitNum() {
-    assertParse("0.0", ae(ELit(VNum(0.0)), meta(0, 1, 1)));
-    assertParse("1.0", ae(ELit(VNum(1.0)), meta(0, 1, 1)));
-    assertParse(" 1.1  ", ae(ELit(VNum(1.1)), meta(1, 1, 2)));
+    assertParseString("0.0", ae(ELit(VNum(0.0)), meta(0, 1, 1)));
+    assertParseString("1.0", ae(ELit(VNum(1.0)), meta(0, 1, 1)));
+    assertParseString(" 1.1  ", ae(ELit(VNum(1.1)), meta(1, 1, 2)));
   }
 
   public function testLitBool() {
-    assertParse("true", ae(ELit(VBool(true)), meta(0, 1, 1)));
-    assertParse("false", ae(ELit(VBool(false)), meta(0, 1, 1)));
-    assertParse("   true ", ae(ELit(VBool(true)), meta(3, 1, 4)));
-    assertParse("  false ", ae(ELit(VBool(false)), meta(2, 1, 3)));
-    assertParse("True", ae(ELit(VBool(true)), meta(0, 1, 1)));
-    assertParse("False", ae(ELit(VBool(false)), meta(0, 1, 1)));
-    assertParse("TRUE", ae(ELit(VBool(true)), meta(0, 1, 1)));
-    assertParse("FALSE", ae(ELit(VBool(false)), meta(0, 1, 1)));
+    assertParseString("true", ae(ELit(VBool(true)), meta(0, 1, 1)));
+    assertParseString("false", ae(ELit(VBool(false)), meta(0, 1, 1)));
+    assertParseString("   true ", ae(ELit(VBool(true)), meta(3, 1, 4)));
+    assertParseString("  false ", ae(ELit(VBool(false)), meta(2, 1, 3)));
+    assertParseString("True", ae(ELit(VBool(true)), meta(0, 1, 1)));
+    assertParseString("False", ae(ELit(VBool(false)), meta(0, 1, 1)));
+    assertParseString("TRUE", ae(ELit(VBool(true)), meta(0, 1, 1)));
+    assertParseString("FALSE", ae(ELit(VBool(false)), meta(0, 1, 1)));
   }
 
   public function testVar() {
-    assertParse("a", ae(EVar("a"), meta(0, 1, 1)));
-    assertParse(" a", ae(EVar("a"), meta(1, 1, 2)));
-    assertParse(" a ", ae(EVar("a"), meta(1, 1, 2)));
-    assertParse("   a ", ae(EVar("a"), meta(3, 1, 4)));
-    assertParse("sales", ae(EVar("sales"), meta(0, 1, 1)));
-    assertParse(" sales", ae(EVar("sales"), meta(1, 1, 2)));
-    assertParse("   sales ", ae(EVar("sales"), meta(3, 1, 4)));
-    assertParse("asn!sales", ae(EVar("asn!sales"), meta(0, 1, 1)));
-    assertParse(" asn!sales", ae(EVar("asn!sales"), meta(1, 1, 2)));
-    assertParse("   asn!sales ", ae(EVar("asn!sales"), meta(3, 1, 4)));
+    assertParseString("a", ae(EVar("a"), meta(0, 1, 1)));
+    assertParseString(" a", ae(EVar("a"), meta(1, 1, 2)));
+    assertParseString(" a ", ae(EVar("a"), meta(1, 1, 2)));
+    assertParseString("   a ", ae(EVar("a"), meta(3, 1, 4)));
+    assertParseString("sales", ae(EVar("sales"), meta(0, 1, 1)));
+    assertParseString(" sales", ae(EVar("sales"), meta(1, 1, 2)));
+    assertParseString("   sales ", ae(EVar("sales"), meta(3, 1, 4)));
+    assertParseString("asn!sales", ae(EVar("asn!sales"), meta(0, 1, 1)));
+    assertParseString(" asn!sales", ae(EVar("asn!sales"), meta(1, 1, 2)));
+    assertParseString("   asn!sales ", ae(EVar("asn!sales"), meta(3, 1, 4)));
   }
 
   public function testVarErrors() {
@@ -112,21 +112,21 @@ class TestExprParser {
   }
 
   public function testFunc() {
-    assertParse("TEST()",
+    assertParseString("TEST()",
       ae(
         EFunc("TEST", []),
         meta(0, 1, 1)
       )
     );
 
-    assertParse(" TEST (   ) ",
+    assertParseString(" TEST (   ) ",
       ae(
         EFunc("TEST", []),
         meta(1, 1, 2)
       )
     );
 
-    assertParse("TEST(1, true)",
+    assertParseString("TEST(1, true)",
       ae(
         EFunc("TEST", [
           ae(ELit(VInt(1)), meta(5, 1, 6)),
@@ -138,7 +138,7 @@ class TestExprParser {
   }
 
   public function testBinOp() {
-    assertParse("1+2",
+    assertParseString("1+2",
       ae(
         EBinOp(
           "+",
@@ -150,7 +150,7 @@ class TestExprParser {
       )
     );
 
-    assertParse("(1+2)",
+    assertParseString("(1+2)",
       ae(
         EBinOp(
           "+",
@@ -162,7 +162,7 @@ class TestExprParser {
       )
     );
 
-    assertParse(" 1  + 2  ",
+    assertParseString(" 1  + 2  ",
       ae(
         EBinOp(
           "+",
@@ -174,7 +174,7 @@ class TestExprParser {
       )
     );
 
-    assertParse("1 + 2 * 3",
+    assertParseString("1 + 2 * 3",
       ae(
         EBinOp(
           "+",
@@ -194,7 +194,7 @@ class TestExprParser {
       )
     );
 
-    assertParse("(1 + 2) * 3",
+    assertParseString("(1 + 2) * 3",
       ae(
         EBinOp(
           "*",
@@ -217,7 +217,7 @@ class TestExprParser {
       )
     );
 
-    assertParse("(1 + (2 + (3 + 4)))",
+    assertParseString("(1 + (2 + (3 + 4)))",
       ae(
         EBinOp(
           "+",
