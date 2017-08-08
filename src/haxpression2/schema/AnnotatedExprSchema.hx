@@ -1,7 +1,5 @@
 package haxpression2.schema;
 
-import thx.Unit;
-import thx.schema.SchemaF;
 import thx.schema.SchemaDSL.*;
 import thx.schema.SimpleSchema;
 import thx.schema.SimpleSchema.*;

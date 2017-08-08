@@ -29,11 +29,11 @@ class AnnotatedExpr<V, A> {
       return vars;
     }
     function mergeVars(vars : Map<String, Array<A>>, others : Map<String, Array<A>>) : Map<String, Array<A>> {
-      return others.tuples().reduce(function(vars : Map<String, Array<A>>, nameMetas : Tuple<String, Array<A>>) {
-        var name = nameMetas._0;
-        var metas = nameMetas._1;
-        return metas.reduce(function(vars : Map<String, Array<A>>, a: A) {
-          return appendVar(vars, name, a);
+      return others.tuples().reduce(function(vars : Map<String, Array<A>>, otherPair : Tuple<String, Array<A>>) {
+        var otherName = otherPair._0;
+        var otherMetas = otherPair._1;
+        return otherMetas.reduce(function(vars : Map<String, Array<A>>, otherMeta: A) {
+          return appendVar(vars, otherName, otherMeta);
         }, vars);
       }, vars);
     }

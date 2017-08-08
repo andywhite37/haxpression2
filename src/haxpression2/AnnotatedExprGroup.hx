@@ -40,10 +40,11 @@ abstract AnnotatedExprGroup<V, A>(AnnotatedExprGroupImpl<V, A>) from AnnotatedEx
 
   public static function parseStringToFallbackStringsMap<V, N, A>(
     fallbackMap : Map<String, Array<String>>,
+    coalesceFunctionName: String,
     parserOptions: ExprParserOptions<V, N, A>
   ) : VNel<ParseError<AnnotatedExpr<V, A>>, AnnotatedExprGroup<V, A>> {
     var coalesceMap : Map<String, String> = fallbackMap.mapValues(function(exprStrings : Array<String>) : String {
-      return 'COALESCE(${exprStrings.join(", ")})';
+      return '${coalesceFunctionName}(${exprStrings.join(", ")})';
     }, new Map());
     return parseStringToStringMap(coalesceMap, parserOptions);
   }

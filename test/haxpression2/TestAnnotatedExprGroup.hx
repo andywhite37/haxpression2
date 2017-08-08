@@ -16,7 +16,7 @@ class TestAnnotatedExprGroup {
       "b" => "2",
       "c" => "a + b",
     ], TestHelper.getTestParserOptions())
-    .map(group -> group.renderString(SimpleValues.renderString))
+    .map(group -> group.renderString(SimpleValueRenderer.renderString))
     .map(groupString -> Assert.same("a: 1\nb: 2\nc: a + b", groupString));
   }
 }

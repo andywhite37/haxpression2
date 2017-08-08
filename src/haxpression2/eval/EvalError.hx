@@ -5,8 +5,6 @@ import haxe.CallStack;
 
 import thx.Error;
 
-import Parsihax;
-
 class EvalError<Expr> extends Error {
   public var expr(default, null) : Expr;
 

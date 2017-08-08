@@ -2,23 +2,26 @@ package haxpression2.simple;
 
 using thx.Arrays;
 import thx.Either;
-using thx.Eithers;
-import thx.Nel;
 import thx.Validation;
 import thx.Validation.*;
 
+import thx.schema.SimpleSchema;
+
 import haxpression2.BinOp;
-using haxpression2.Expr;
+import haxpression2.Expr;
 import haxpression2.UnOp;
-using haxpression2.Value;
-using haxpression2.eval.ExprEvaluator;
+import haxpression2.eval.ExprEvaluator;
 import haxpression2.eval.EvalError;
 import haxpression2.parse.ExprParser;
 import haxpression2.parse.ParseError;
 import haxpression2.parse.ParseMeta;
-using haxpression2.render.ExprRenderer;
-using haxpression2.render.ValueRenderer;
+import haxpression2.render.ExprRenderer;
+import haxpression2.schema.AnnotatedExprSchema;
+import haxpression2.schema.ExprSchema;
+import haxpression2.schema.ParseMetaSchema;
 import haxpression2.simple.SimpleValue;
+
+// Specialized type aliases
 
 typedef SimpleExpr = Expr<SimpleValue, ParseMeta>;
 typedef SimpleAnnotatedExpr = AnnotatedExpr<SimpleValue, ParseMeta>;
@@ -33,11 +36,69 @@ typedef SimpleEvalFunc = EvalFunc<SimpleValue>;
 typedef SimpleEvalError = EvalError<SimpleAnnotatedExpr>;
 typedef SimpleEvalOptions = EvalOptions<SimpleAnnotatedExpr, SimpleEvalError, SimpleValue, ParseMeta>;
 typedef SimpleEvalResult = EvalResult<SimpleAnnotatedExpr, SimpleEvalError, SimpleValue>;
-typedef SimpleParseEvalResult = ParseEvalResult<SimpleAnnotatedExpr, SimpleParseError, SimpleEvalError, SimpleValue>;
+typedef SimpleEvalStringResult = EvalStringResult<SimpleAnnotatedExpr, SimpleParseError, SimpleEvalError, SimpleValue>;
 
-typedef SimpleParseRenderResult = Either<SimpleParseError, String>;
+typedef SimpleFormatStringResult = Either<SimpleParseError, String>;
+
+// Specialized wrapper classes
+
+class SimpleExprSchema {
+  public static function schema<E>() : Schema<E, SimpleExpr> {
+    return ExprSchema.schema(SimpleValueSchema.schema(), ParseMetaSchema.schema());
+  }
+}
+
+class SimpleAnnotatedExprSchema {
+  public static function schema<E>() : Schema<E, SimpleAnnotatedExpr> {
+    return AnnotatedExprSchema.schema(SimpleValueSchema.schema(), ParseMetaSchema.schema());
+  }
+}
+
+class SimpleExprRenderer {
+  public static function renderString(expr : SimpleExpr) : String {
+    return ExprRenderer.renderString(expr, SimpleValueRenderer.renderString);
+  }
+
+  public static function formatString(input : String, options: SimpleParserOptions) : SimpleFormatStringResult {
+    return ExprRenderer.formatString(input, options, SimpleValueRenderer.renderString);
+  }
+}
+
+class SimpleAnnotatedExprRenderer {
+  public static function renderString(ae : SimpleAnnotatedExpr) : String {
+    return AnnotatedExprRenderer.renderString(ae, SimpleValueRenderer.renderString, meta -> meta.toString());
+  }
+}
+
+class SimpleExprParser {
+  public static function parseString(input : String, options: SimpleParserOptions) : SimpleParseResult {
+    return ExprParser.parseString(input, options);
+  }
+}
+
+class SimpleExprEvaluator {
+  public static function eval(expr : SimpleAnnotatedExpr, evalOptions: SimpleEvalOptions) : SimpleEvalResult {
+    return AnnotatedExprEvaluator.eval(expr, evalOptions);
+  }
+
+  public static function evalString(input: String, parserOptions: SimpleParserOptions, evalOptions: SimpleEvalOptions) : SimpleEvalStringResult {
+    return AnnotatedExprEvaluator.evalString(input, parserOptions, evalOptions);
+  }
+}
 
 class SimpleExprs {
+  public static function getStandardParserOptions() : SimpleParserOptions {
+    return {
+      variableNameRegexp: ~/[a-z][a-z0-9]*(?:!?[a-z0-9]+)?/i,
+      functionNameRegexp: ~/[a-z][a-z0-9]+/i,
+      binOps: SimpleExprs.getStandardBinOps(),
+      unOps: SimpleExprs.getStandardUnOps(),
+      parseDecimal: Std.parseFloat,
+      convertValue: thx.Functions.identity,
+      annotate: ParseMeta.new
+    };
+  }
+
   // https://www.haskell.org/onlinereport/haskell2010/haskellch4.html#x10-820004.4.2
   public static function getStandardBinOps() : Array<BinOp> {
     return [
@@ -92,22 +153,6 @@ class SimpleExprs {
     return [
       "sum" => sum
     ];
-  }
-
-  public static function renderString(expr : SimpleExpr) : String {
-    return expr.renderString(SimpleValues.renderString);
-  }
-
-  public static function parseString(input : String, options: SimpleParserOptions) : SimpleParseResult {
-    return ExprParser.parseString(input, options);
-  }
-
-  public static function formatString(input : String, options: SimpleParserOptions) : SimpleParseRenderResult {
-    return ExprRenderer.formatString(input, options, SimpleValues.renderString);
-  }
-
-  public static function evalString(input: String, parserOptions: SimpleParserOptions, evalOptions: SimpleEvalOptions) : SimpleParseEvalResult {
-    return AnnotatedExprEvaluator.evalString(input, parserOptions, evalOptions);
   }
 
   public static function reduceValues(options: {

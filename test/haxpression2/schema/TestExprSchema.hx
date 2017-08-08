@@ -1,7 +1,13 @@
 package haxpression2.schema;
 
+import haxe.ds.Option;
+
 import utest.Assert;
 
+import thx.Either;
+using thx.Eithers;
+import thx.Functions.identity;
+using thx.Options;
 import thx.schema.SchemaDSL.*;
 import thx.schema.SimpleSchema.*;
 using thx.schema.SchemaDynamicExtensions;
@@ -12,6 +18,7 @@ import haxpression2.Value;
 import haxpression2.parse.ParseMeta;
 import haxpression2.parse.ParseMeta.create as meta;
 import haxpression2.schema.ExprSchema;
+import haxpression2.simple.SimpleExpr;
 
 class TestExprSchema {
   public function new() {}
@@ -139,5 +146,28 @@ class TestExprSchema {
         ae(EVar("a"), meta(1, 2, 3))
       )
     );
+  }
+
+  public function testRoundTrip() : Void {
+    var input = "1+ 2 + a  /b+ func ( true  ,   'hi' ) - sin(cos(x)/atan2(y), false) * ((a + b) / 3)  ";
+
+    // Parse string
+    SimpleExprParser.parseString(input, SimpleExprs.getStandardParserOptions())
+      .toRight()
+      .map(function(ae : SimpleAnnotatedExpr) : Dynamic {
+        // Render Dynamic
+        return SimpleAnnotatedExprSchema.schema().renderDynamic(ae);
+      })
+      .flatMap(function(data : Dynamic) : Option<SimpleAnnotatedExpr> {
+        // Parse Dynamic
+        return SimpleAnnotatedExprSchema.schema().parseDynamic(identity, data).either.toRight();
+      })
+      .map(function(ae : SimpleAnnotatedExpr) : String {
+        // Render back to string
+        return SimpleExprRenderer.renderString(ae.expr);
+      })
+      .each(function(str : String) : Void {
+        Assert.same('1 + 2 + a / b + func(true, "hi") - sin(cos(x) / atan2(y), false) * (a + b) / 3', str);
+      });
   }
 }

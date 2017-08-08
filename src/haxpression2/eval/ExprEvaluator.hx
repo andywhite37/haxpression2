@@ -44,7 +44,7 @@ typedef EvalOptions<Expr, Error, V, A> = {
 
 typedef EvalResult<Expr, Error, V> = VNel<{ expr: Expr, error: Error }, V>;
 
-enum ParseEvalResult<Expr, ParseError, EvalError, V> {
+enum EvalStringResult<Expr, ParseError, EvalError, V> {
   ParseError(error : ParseError);
   EvalErrors(errors : Nel<{ expr: Expr, error: EvalError }>);
   Success(value : V);
@@ -76,7 +76,6 @@ class ExprEvaluator {
             .flatMapV(operandValue -> unOp(operandValue).leftMap(errors -> errors.map(error -> { expr: expr, error: options.onError(error, expr) })))
         );
 
-
       case EBinOp(operator, precedence, leftExpr, rightExpr) :
         options.binOps.getOption(operator).cataf(
           () -> failureNel({ expr: expr, error: options.onError('no definition was given for binary operator: $operator', expr) }),
@@ -94,7 +93,7 @@ class ExprEvaluator {
     input: String,
     parserOptions: ExprParserOptions<V, N, A>,
     evalOptions: EvalOptions<Expr<V, A>, EvalError<Expr<V, A>>, V, A>
-  ) : ParseEvalResult<Expr<V, A>, ParseError<AnnotatedExpr<V, A>>, EvalError<Expr<V, A>>, V> {
+  ) : EvalStringResult<Expr<V, A>, ParseError<AnnotatedExpr<V, A>>, EvalError<Expr<V, A>>, V> {
     return switch ExprParser.parseString(input, parserOptions) {
       case Left(parseError) : ParseError(parseError);
       case Right(ae) : switch eval(ae.expr, evalOptions) {
@@ -149,7 +148,7 @@ class AnnotatedExprEvaluator {
     input: String,
     parserOptions: ExprParserOptions<V, N, A>,
     evalOptions: EvalOptions<AnnotatedExpr<V, A>, EvalError<AnnotatedExpr<V, A>>, V, A>
-  ) : ParseEvalResult<AnnotatedExpr<V, A>, ParseError<AnnotatedExpr<V, A>>, EvalError<AnnotatedExpr<V, A>>, V> {
+  ) : EvalStringResult<AnnotatedExpr<V, A>, ParseError<AnnotatedExpr<V, A>>, EvalError<AnnotatedExpr<V, A>>, V> {
     return switch ExprParser.parseString(input, parserOptions) {
       case Left(parseError) : ParseError(parseError);
       case Right(ae) : switch eval(ae, evalOptions) {

@@ -11,7 +11,7 @@ import TestHelper.assertEvalString;
 class TestExprEvaluator {
   public function new() {}
 
-  public function testParseEvalNumbers() {
+  public function testEvalStringNumbers() {
     assertEvalString(VInt(0), "0");
     assertEvalString(VInt(3), "1+2");
     assertEvalString(VNum(1 + 2 - 3 * 4 / 5), "1 + 2 - 3 * 4 / 5");
@@ -29,7 +29,7 @@ class TestExprEvaluator {
     assertEvalString(VInt(-2), "-(-1 - -3)");
   }
 
-  public function testParseEvalBools() {
+  public function testEvalStringBools() {
     assertEvalString(VBool(true), "true");
     assertEvalString(VBool(false), "false");
     assertEvalString(VBool(false), "~true");
@@ -52,8 +52,8 @@ class TestExprEvaluator {
     assertEvalString(VBool(true), "~(false || false)");
   }
 
-  public function testParseEvalError() {
-    switch SimpleExprs.evalString("d", TestHelper.getTestParserOptions(), TestHelper.getTestEvalOptions()) {
+  public function testEvalStringError() {
+    switch SimpleExprEvaluator.evalString("d", TestHelper.getTestParserOptions(), TestHelper.getTestEvalOptions()) {
       case EvalErrors(Single(exprError)) :
         Assert.same("no variable definition was given for variable: d", exprError.error.message);
         Assert.same(ae(EVar("d"), meta(0, 1, 1)), exprError.error.expr);
@@ -61,7 +61,7 @@ class TestExprEvaluator {
       case bad : Assert.fail('unexpected evalString result: $bad');
     };
 
-    switch SimpleExprs.evalString("a + d + e", TestHelper.getTestParserOptions(), TestHelper.getTestEvalOptions()) {
+    switch SimpleExprEvaluator.evalString("a + d + e", TestHelper.getTestParserOptions(), TestHelper.getTestEvalOptions()) {
       case EvalErrors(errors) if (errors.toArray().length == 2) :
         var errorArray = errors.toArray().reverse();
 
@@ -76,21 +76,21 @@ class TestExprEvaluator {
       case bad : Assert.fail('unexpected evalString result: $bad');
     };
 
-    switch SimpleExprs.evalString("true + 1", TestHelper.getTestParserOptions(), TestHelper.getTestEvalOptions()) {
+    switch SimpleExprEvaluator.evalString("true + 1", TestHelper.getTestParserOptions(), TestHelper.getTestEvalOptions()) {
       case EvalErrors(Single(exprError)) :
         Assert.same('cannot combine values of incompatible types: `VBool(true)` and `VInt(1)`', exprError.error.message);
         Assert.same(meta(5, 1, 6), exprError.error.expr.annotation);
       case bad : Assert.fail('unexpected evalString result: $bad');
     };
 
-    switch SimpleExprs.evalString("true + 1 + 'hi'", TestHelper.getTestParserOptions(), TestHelper.getTestEvalOptions()) {
+    switch SimpleExprEvaluator.evalString("true + 1 + 'hi'", TestHelper.getTestParserOptions(), TestHelper.getTestEvalOptions()) {
       case EvalErrors(Single(exprError)) :
         Assert.same('cannot combine values of incompatible types: `VBool(true)` and `VInt(1)`', exprError.error.message);
         Assert.same(meta(5, 1, 6), exprError.error.expr.annotation);
       case bad : Assert.fail('unexpected evalString result: $bad');
     };
 
-    switch SimpleExprs.evalString("true || false + 'hi'", TestHelper.getTestParserOptions(), TestHelper.getTestEvalOptions()) {
+    switch SimpleExprEvaluator.evalString("true || false + 'hi'", TestHelper.getTestParserOptions(), TestHelper.getTestEvalOptions()) {
       case EvalErrors(Single(exprError)) :
         Assert.same('cannot combine values of incompatible types: `VBool(false)` and `VStr(hi)`', exprError.error.message);
         Assert.same(meta(14, 1, 15), exprError.error.expr.annotation);
