@@ -4,16 +4,21 @@ import haxe.ds.Option;
 
 using thx.Arrays;
 using thx.Eithers;
+using thx.Iterators;
 using thx.Maps;
 import thx.Nel;
 using thx.Options;
 import thx.Tuple;
+import thx.Unit;
 import thx.Validation;
 import thx.Validation.*;
 
 import thx.schema.SchemaDSL.*;
 import thx.schema.SimpleSchema;
 import thx.schema.SimpleSchema.*;
+
+import graphx.StringGraph;
+import graphx.NodeOrValue;
 
 using haxpression2.AnnotatedExpr;
 using haxpression2.AnnotatedExprGroup;
@@ -34,7 +39,7 @@ abstract AnnotatedExprGroup<V, A>(AnnotatedExprGroupImpl<V, A>) from AnnotatedEx
     this = value;
   }
 
-  public static function unwrap<V, A>(group : AnnotatedExprGroup<V, A>) : AnnotatedExprGroupImpl<V, A> {
+  public static inline function unwrap<V, A>(group : AnnotatedExprGroup<V, A>) : AnnotatedExprGroupImpl<V, A> {
     return group;
   }
 
@@ -103,12 +108,9 @@ abstract AnnotatedExprGroup<V, A>(AnnotatedExprGroupImpl<V, A>) from AnnotatedEx
       };
   }
 
-  public static function expand<V, A>(group : AnnotatedExprGroup<V, A>) : AnnotatedExprGroup<V, ExpandMeta<V, A>> {
-    var expandedGroup = group.mapAnnotation(function(name : String, ae : AnnotatedExpr<V, A>) : ExpandMeta<V, A> {
-      return new ExpandMeta({
-        original: { expr: ae, vars: ae.getVarsArray() },
-        expanded: None
-      });
+  public static function expand<V, A>(group : AnnotatedExprGroup<V, A>) : AnnotatedExprGroup<V, Unit> {
+    var expandedGroup = group.mapAnnotation(function(name : String, ae : AnnotatedExpr<V, A>) : Unit {
+      return unit;
     });
     while (canExpand(expandedGroup)) {
       expandedGroup = expandOnce(expandedGroup);
@@ -116,16 +118,16 @@ abstract AnnotatedExprGroup<V, A>(AnnotatedExprGroupImpl<V, A>) from AnnotatedEx
     return expandedGroup;
   }
 
-  public static function expandOnce<V, A>(group : AnnotatedExprGroup<V, ExpandMeta<V, A>>) : AnnotatedExprGroup<V, ExpandMeta<V, A>> {
-    return group.foldLeftWithKeys(function(group : AnnotatedExprGroup<V, ExpandMeta<V, A>>, name : String, ae : AnnotatedExpr<V, ExpandMeta<V, A>>) {
+  public static function expandOnce<V, A>(group : AnnotatedExprGroup<V, Unit>) : AnnotatedExprGroup<V, Unit> {
+    return group.foldLeftWithKeys(function(group : AnnotatedExprGroup<V, Unit>, name : String, ae : AnnotatedExpr<V, Unit>) {
       return group.setVar(name, expandAnnotatedExpr(group, ae));
     }, group);
   }
 
   public static function expandAnnotatedExpr<V, A>(
-    group : AnnotatedExprGroup<V, ExpandMeta<V, A>>,
-    ae : AnnotatedExpr<V, ExpandMeta<V, A>>
-  ) : AnnotatedExpr<V, ExpandMeta<V, A>> {
+    group : AnnotatedExprGroup<V, Unit>,
+    ae : AnnotatedExpr<V, Unit>
+  ) : AnnotatedExpr<V, Unit> {
     return switch ae.expr {
       case ELit(_) : ae;
       case EVar(name) :
@@ -134,108 +136,152 @@ abstract AnnotatedExprGroup<V, A>(AnnotatedExprGroupImpl<V, A>) from AnnotatedEx
           exprForName -> ae.substitute(name, exprForName)
         );
       case EFunc(name, args) :
-        var expanded : Expr<V, ExpandMeta<V, A>> = EFunc(name, args.map(arg -> expandAnnotatedExpr(group, arg)));
-        new AnnotatedExpr(expanded, ae.annotation.withExpanded(expanded));
+        var expanded : Expr<V, Unit> = EFunc(name, args.map(arg -> expandAnnotatedExpr(group, arg)));
+        new AnnotatedExpr(expanded, unit);
       case EBinOp(op, prec, left, right) :
         var expanded = EBinOp(op, prec, expandAnnotatedExpr(group, left), expandAnnotatedExpr(group, right));
-        new AnnotatedExpr(expanded, ae.annotation.withExpanded(expanded));
+        new AnnotatedExpr(expanded, unit);
       case EUnOpPre(op, prec, operand) :
         var expanded = EUnOpPre(op, prec, expandAnnotatedExpr(group, operand));
-        new AnnotatedExpr(expanded, ae.annotation.withExpanded(expanded));
+        new AnnotatedExpr(expanded, unit);
     };
   }
 
-  // public function analyze() : AnalyzeResult<V, A> {
-  // }
+  public static function analyze<V, A>(group : AnnotatedExprGroup<V, A>, renderValue : V -> String) : AnalyzeResult<V, A> {
+    var expandedGroup : AnnotatedExprGroup<V, Unit> = expand(group);
 
-  // public function expandExpressionForVariable(name : String) : VNel<String, Expr<V, A>> {
-  //   return this.getOption(name).cataf(
-  //     () -> failureNel('no variable found in group for $name'),
-  //     ae -> successNel(expandExpr(ae.expr))
-  //   );
-  // }
+    var result : { allExternalVars: Array<String>, analyzedExprs: Map<String, AnalyzedExpr<V, A>> } =
+      group.foldLeftWithKeys(function(acc : { allExternalVars: Array<String>, analyzedExprs: Map<String, AnalyzedExpr<V, A>> }, name : String, original : AnnotatedExpr<V, A>) {
+        var expandedExpr = expandedGroup.unwrap().get(name);
+        var expandedVars = expandedExpr.getVarsArray();
+        var analyzedExpr : AnalyzedExpr<V, A> = new AnalyzedExpr({
+          originalExpr: original,
+          originalExprString: ExprRenderer.renderString(original.expr, renderValue),
+          originalVars: original.getVarsArray(),
+          expandedExpr: expandedExpr,
+          expandedExprString: ExprRenderer.renderString(expandedExpr.expr, renderValue),
+          expandedVars: expandedVars
+        });
+        acc.analyzedExprs.set(name, analyzedExpr);
+        acc.allExternalVars = acc.allExternalVars.concat(expandedVars);
+        return acc;
+      }, { allExternalVars: [], analyzedExprs: new Map() });
 
-  // public function expandExpr(expr : Expr<V, A>) : Expr<V, A> {
-  //   return switch expr {
-  //     case e = ELit(_) : e;
-  //     case e = EVar(name) : e;
-  //     case EFunc(name, argExprs) :
-  //   };
-  // }
-}
+    var definedVars = group.unwrap().keys().toArray();
+    var externalVars = result.allExternalVars.distinct();
+    var allVars = definedVars.concat(externalVars);
+    var dependencySortedVars = dependencySort(expandedGroup, allVars);
 
-/*
-class AnalyzeResult<V, A> {
-  public var annotatedExprGroup(default, null) : AnnotatedExprGroup<V, ExpandMeta<V, A>>;
-  public var externalVars(default, null): Array<String>;
-  public var orderedVars(default, null): Array<String>;
-}
-*/
-
-typedef OriginalMeta<V, A> = {
-  expr: AnnotatedExpr<V, A>,
-  vars: Array<String>
-};
-
-typedef ExpandedMeta<V, A> = {
-  expr: Expr<V, ExpandMeta<V, A>>,
-  vars: Array<String>
-};
-
-class ExpandMeta<V, A> {
-  public var original(default, null) : OriginalMeta<V, A>;
-  public var expanded(default, null) : Option<ExpandedMeta<V, A>>;
-
-  public function new(options: { original : OriginalMeta<V, A>, expanded: Option<ExpandedMeta<V, A>> }) {
-    this.original = options.original;
-    this.expanded = options.expanded;
-  }
-
-  public static function schema<E, V, A>(annotatedExprSchema : Schema<E, AnnotatedExpr<V, A>>, exprSchema : Schema<E, Expr<V, ExpandMeta<V, A>>>) : Schema<E, ExpandMeta<V, A>> {
-    return object(ap2(
-      (orig, exp) -> new ExpandMeta({ original: orig, expanded: exp }),
-      required("original", originalMetaSchema(annotatedExprSchema), (meta : ExpandMeta<V, A>) -> meta.original),
-      optional("expanded", expandedMetaSchema(exprSchema), (meta : ExpandMeta<V, A>) -> meta.expanded)
-    ));
-  }
-
-  public static function originalMetaSchema<E, V, A>(annotatedExprSchema : Schema<E, AnnotatedExpr<V, A>>) : Schema<E, OriginalMeta<V, A>> {
-    return object(ap2(
-      (expr : AnnotatedExpr<V, A>, vars : Array<String>) -> { expr: expr, vars: vars },
-      required("expr", annotatedExprSchema, (meta : OriginalMeta<V, A>)  -> meta.expr),
-      required("vars", array(string()), (meta : OriginalMeta<V, A>) -> meta.vars)
-    ));
-  }
-
-  public static function expandedMetaSchema<E, V, A>(exprSchema : Schema<E, Expr<V, ExpandMeta<V, A>>>) : Schema<E, ExpandedMeta<V, A>> {
-    return object(ap2(
-      (expr : Expr<V, ExpandMeta<V, A>>, vars : Array<String>) -> { expr: expr, vars: vars },
-      required("expr", exprSchema, (meta : ExpandedMeta<V, A>) -> meta.expr),
-      required("vars", array(string()), (meta : ExpandedMeta<V, A>) -> meta.vars)
-    ));
-  }
-
-  public function withExpanded(expanded : Expr<V, ExpandMeta<V, A>>) : ExpandMeta<V, A> {
-    return new ExpandMeta({
-      original: this.original,
-      expanded: Some({
-        expr: expanded,
-        vars: expanded.getVars()
-      })
+    return new AnalyzeResult({
+      analyzedExprs: result.analyzedExprs,
+      externalVars: externalVars,
+      definedVars: definedVars,
+      allVars: allVars,
+      dependencySortedVars: dependencySortedVars,
     });
   }
 
-  public static function renderString<V, A>(meta : ExpandMeta<V, A>) : String {
-    var originalStr = renderOriginalMetaString(meta.original);
-    var expandedStr = meta.expanded.map(renderExpandedMetaString).getOrElse("none");
-    return 'ExpandMeta(\n  original: $originalStr\n  expanded: $expandedStr\n)';
+  public static function dependencySort<V, A>(group : AnnotatedExprGroup<V, A>, vars : Array<String>) : Array<String> {
+    var seen : Map<String, Bool> = new Map();
+    return vars.reduce(function(graph : graphx.StringGraph, name : String) : graphx.StringGraph {
+      if (seen.exists(name)) {
+        return graph;
+      }
+      seen.set(name, true);
+      graph.addNode(name);
+      group.getVar(name).each(function(annotatedExpr : AnnotatedExpr<V, A>) : Void {
+        //trace('add edges from $name to ${annotatedExpr.getVarsArray().join(", ")}');
+        var depVars = annotatedExpr.getVarsArray();
+        for (depVar in depVars) {
+          graph.addNode(depVar);
+        }
+        graph.addEdgesTo(name, NodeOrValue.mapValues(depVars));
+      });
+      return graph;
+    }, new graphx.StringGraph())
+    .topologicalSort();
+  }
+}
+
+class AnalyzeResult<V, A> {
+  public var analyzedExprs(default, null) : Map<String, AnalyzedExpr<V, A>>;
+  public var allVars(default, null) : Array<String>;
+  public var definedVars(default, null) : Array<String>;
+  public var externalVars(default, null): Array<String>;
+  public var dependencySortedVars(default, null): Array<String>;
+
+  public function new(options: {
+    analyzedExprs : Map<String, AnalyzedExpr<V, A>>,
+    allVars : Array<String>,
+    definedVars : Array<String>,
+    externalVars : Array<String>,
+    dependencySortedVars : Array<String>
+  }) {
+    this.analyzedExprs = options.analyzedExprs;
+    this.allVars = options.allVars;
+    this.definedVars = options.definedVars;
+    this.externalVars = options.externalVars;
+    this.dependencySortedVars = options.dependencySortedVars;
   }
 
-  static function renderOriginalMetaString<V, A>(meta : OriginalMeta<V, A>) : String {
-    return '$meta';
+  public static function schema<E, V, A>(analyzedExprSchema : Schema<E, AnalyzedExpr<V, A>>) : Schema<E, AnalyzeResult<V, A>> {
+    return object(ap5(
+      (a, all, def, ext, dep) -> new AnalyzeResult({
+        analyzedExprs: a,
+        allVars: all,
+        definedVars: def,
+        externalVars: ext,
+        dependencySortedVars: dep
+      }),
+      required("analyzedExprs", dict(analyzedExprSchema), (obj : AnalyzeResult<V, A>) -> obj.analyzedExprs),
+      required("allVars", array(string()), (obj : AnalyzeResult<V, A>) -> obj.allVars),
+      required("definedVars", array(string()), (obj : AnalyzeResult<V, A>) -> obj.definedVars),
+      required("externalVars", array(string()), (obj : AnalyzeResult<V, A>) -> obj.externalVars),
+      required("dependencySortedVars", array(string()), (obj : AnalyzeResult<V, A>) -> obj.dependencySortedVars)
+    ));
+  }
+}
+
+class AnalyzedExpr<V, A> {
+  public var originalExpr(default, null) : AnnotatedExpr<V, A>;
+  public var originalExprString(default, null) : String;
+  public var originalVars(default, null) : Array<String>;
+  public var expandedExpr(default, null) : AnnotatedExpr<V, Unit>;
+  public var expandedExprString(default, null) : String;
+  public var expandedVars(default, null) : Array<String>;
+
+  public function new(options: {
+    originalExpr: AnnotatedExpr<V, A>,
+    originalExprString: String,
+    originalVars: Array<String>,
+    expandedExpr: AnnotatedExpr<V, Unit>,
+    expandedExprString: String,
+    expandedVars: Array<String>
+  }) {
+    this.originalExpr = options.originalExpr;
+    this.originalExprString = options.originalExprString;
+    this.originalVars = options.originalVars;
+    this.expandedExpr = options.expandedExpr;
+    this.expandedExprString = options.expandedExprString;
+    this.expandedVars = options.expandedVars;
   }
 
-  static function renderExpandedMetaString<V, A>(meta : ExpandedMeta<V, A>) : String {
-    return '$meta';
+  public static function schema<E, V, A>(annotatedExprASchema : Schema<E, AnnotatedExpr<V, A>>, annotatedExprUnitSchema : Schema<E, AnnotatedExpr<V, Unit>>) : Schema<E, AnalyzedExpr<V, A>> {
+    return object(ap6(
+      (oe, os, ov, ee, es, ev) -> new AnalyzedExpr({
+        originalExpr: oe,
+        originalExprString: os,
+        originalVars: ov,
+        expandedExpr: ee,
+        expandedExprString: es,
+        expandedVars: ev,
+      }),
+      required("originalExpr", annotatedExprASchema, (a : AnalyzedExpr<V, A>) -> a.originalExpr),
+      required("originalExprString", string(), (a : AnalyzedExpr<V, A>) -> a.originalExprString),
+      required("originalVars", array(string()), (a : AnalyzedExpr<V, A>) -> a.originalVars),
+      required("expandedExpr", annotatedExprUnitSchema, (a : AnalyzedExpr<V, A>) -> a.expandedExpr),
+      required("expandedExprString", string(), (a : AnalyzedExpr<V, A>) -> a.expandedExprString),
+      required("expandedVars", array(string()), (a : AnalyzedExpr<V, A>) -> a.expandedVars)
+    ));
   }
 }

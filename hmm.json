@@ -1,6 +1,13 @@
 {
   "dependencies": [
     {
+      "name": "graphx",
+      "type": "git",
+      "dir": null,
+      "ref": "bd61218",
+      "url": "git@github.com:andywhite37/graphx"
+    },
+    {
       "name": "monax",
       "type": "git",
       "dir": "src",
