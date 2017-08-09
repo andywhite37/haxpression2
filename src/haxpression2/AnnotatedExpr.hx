@@ -19,6 +19,14 @@ class AnnotatedExpr<V, A> {
     return new AnnotatedExpr(expr, annotation);
   }
 
+  public static function mapValue<V1, V2, A>(ae : AnnotatedExpr<V1, A>, f : V1 -> V2) : AnnotatedExpr<V2, A> {
+    return new AnnotatedExpr(Exprs.mapValue(ae.expr, f), ae.annotation);
+  }
+
+  public static function mapAnnotation<V, A, B>(ae : AnnotatedExpr<V, A>, f : AnnotatedExpr<V, A> -> B) : AnnotatedExpr<V, B> {
+    return new AnnotatedExpr(Exprs.mapAnnotation(ae.expr, f), f(ae));
+  }
+
   public static function getVars<V, A>(ae : AnnotatedExpr<V, A>) : Map<String, Array<A>> {
     function appendVar(vars : Map<String, Array<A>>, name: String, a : A) : Map<String, Array<A>> {
       if (vars.exists(name)) {
@@ -54,12 +62,25 @@ class AnnotatedExpr<V, A> {
     return accVars(new Map(), ae);
   }
 
-  public static function mapValue<V1, V2, A>(ae : AnnotatedExpr<V1, A>, f : V1 -> V2) : AnnotatedExpr<V2, A> {
-    return new AnnotatedExpr(Exprs.mapValue(ae.expr, f), ae.annotation);
+  public static function getVarsArray<V, A>(ae : AnnotatedExpr<V, A>) : Array<String> {
+    return Exprs.getVars(ae.expr);
   }
 
-  public static function mapAnnotation<V, A, B>(ae : AnnotatedExpr<V, A>, f : Expr<V, A> -> A -> B) : AnnotatedExpr<V, B> {
-    return new AnnotatedExpr(Exprs.mapAnnotation(ae.expr, f), f(ae.expr, ae.annotation));
+  public static function substitute<V, A>(target : AnnotatedExpr<V, A>, name : String, sub : AnnotatedExpr<V, A>) : AnnotatedExpr<V, A> {
+    return switch target.expr {
+      case ELit(_) : target;
+      case EVar(n) if (n == name) : sub;
+      case EVar(_) : target;
+      case EFunc(name, args) : create(EFunc(name, args.map(arg -> substitute(arg, name, sub))), target.annotation);
+      case EBinOp(operator, precedence, left, right) : create(EBinOp(operator, precedence, substitute(left, name, sub), substitute(right, name, sub)), target.annotation);
+      case EUnOpPre(operator, precedence, operand) : create(EUnOpPre(operator, precedence, substitute(operand, name, sub)), target.annotation);
+    };
+  }
+
+  public static function substituteMap<V, A>(target : AnnotatedExpr<V, A>, subs : Map<String, AnnotatedExpr<V, A>>) : AnnotatedExpr<V, A> {
+    return subs.foldLeftWithKeys(function(target : AnnotatedExpr<V, A>, name : String, sub : AnnotatedExpr<V, A>) {
+      return substitute(target, name, sub);
+    }, target);
   }
 }
 

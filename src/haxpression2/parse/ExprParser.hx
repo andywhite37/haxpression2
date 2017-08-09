@@ -2,6 +2,12 @@ package haxpression2.parse;
 
 using thx.Arrays;
 import thx.Either;
+using thx.Eithers;
+using thx.Maps;
+import thx.Nel;
+import thx.Tuple;
+import thx.Validation;
+import thx.Validation.*;
 
 import Parsihax.*;
 using Parsihax;
@@ -154,5 +160,22 @@ class ExprParser {
     } else {
       Left(ParseError.fromParseResult(input, parseResult));
     };
+  }
+
+  public static function parseStrings<V, N, A>(input : Array<String>, options : ExprParserOptions<V, N, A>) : VNel<ParseError<AnnotatedExpr<V, A>>, Array<AnnotatedExpr<V, A>>> {
+    return input.traverseValidation(function(str : String) {
+      return parseString(str, options).toVNel();
+    }, Nel.semigroup());
+  }
+
+  public static function parseStringMap<V, N, A>(input : Map<String, String>, options : ExprParserOptions<V, N, A>) : VNel<ParseError<AnnotatedExpr<V, A>>, Map<String, AnnotatedExpr<V, A>>> {
+    return input
+      .tuples()
+      .traverseValidation(function(keyStr : Tuple<String, String>) : VNel<ParseError<AnnotatedExpr<V, A>>, Tuple<String, AnnotatedExpr<V, A>>> {
+        return parseString(keyStr._1, options).map(ae -> new Tuple(keyStr._0, ae)).toVNel();
+      }, Nel.semigroup())
+      .map(function(tuples : Array<Tuple<String, AnnotatedExpr<V, A>>>) {
+        return tuples.toStringMap();
+      });
   }
 }

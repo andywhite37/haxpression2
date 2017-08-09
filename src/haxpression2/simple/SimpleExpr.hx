@@ -10,6 +10,7 @@ import thx.schema.SimpleSchema;
 import haxpression2.BinOp;
 import haxpression2.Expr;
 import haxpression2.UnOp;
+import haxpression2.AnnotatedExprGroup;
 import haxpression2.eval.ExprEvaluator;
 import haxpression2.eval.EvalError;
 import haxpression2.parse.ExprParser;
@@ -40,6 +41,8 @@ typedef SimpleEvalStringResult = EvalStringResult<SimpleAnnotatedExpr, SimplePar
 
 typedef SimpleFormatStringResult = Either<SimpleParseError, String>;
 
+typedef SimpleAnnotatedExprGroup<A> = AnnotatedExprGroup<SimpleValue, A>;
+
 // Specialized wrapper classes
 
 class SimpleExprSchema {
@@ -51,6 +54,20 @@ class SimpleExprSchema {
 class SimpleAnnotatedExprSchema {
   public static function schema<E>() : Schema<E, SimpleAnnotatedExpr> {
     return AnnotatedExprSchema.schema(SimpleValueSchema.schema(), ParseMetaSchema.schema());
+  }
+}
+
+class SimpleExprParser {
+  public static function parseString(input : String, options: SimpleParserOptions) : SimpleParseResult {
+    return ExprParser.parseString(input, options);
+  }
+
+  public static function parseStrings(input : Array<String>, options : SimpleParserOptions) : VNel<ParseError<SimpleAnnotatedExpr>, Array<SimpleAnnotatedExpr>> {
+    return ExprParser.parseStrings(input, options);
+  }
+
+  public static function parseStringMap(input : Map<String, String>, options : SimpleParserOptions) : VNel<ParseError<SimpleAnnotatedExpr>, Map<String, SimpleAnnotatedExpr>> {
+    return ExprParser.parseStringMap(input, options);
   }
 }
 
@@ -70,13 +87,7 @@ class SimpleAnnotatedExprRenderer {
   }
 }
 
-class SimpleExprParser {
-  public static function parseString(input : String, options: SimpleParserOptions) : SimpleParseResult {
-    return ExprParser.parseString(input, options);
-  }
-}
-
-class SimpleExprEvaluator {
+class SimpleAnnotatedExprEvaluator {
   public static function eval(expr : SimpleAnnotatedExpr, evalOptions: SimpleEvalOptions) : SimpleEvalResult {
     return AnnotatedExprEvaluator.eval(expr, evalOptions);
   }
@@ -86,11 +97,17 @@ class SimpleExprEvaluator {
   }
 }
 
+class SimpleAnnotatedExprGroups {
+  public static function renderString<A>(group : SimpleAnnotatedExprGroup<A>) : String {
+    return AnnotatedExprGroup.renderString(group, SimpleValueRenderer.renderString);
+  }
+}
+
 class SimpleExprs {
   public static function getStandardParserOptions() : SimpleParserOptions {
     return {
       variableNameRegexp: ~/[a-z][a-z0-9]*(?:!?[a-z0-9]+)?/i,
-      functionNameRegexp: ~/[a-z][a-z0-9]+/i,
+      functionNameRegexp: ~/[a-z][a-z0-9]*/i,
       binOps: SimpleExprs.getStandardBinOps(),
       unOps: SimpleExprs.getStandardUnOps(),
       parseDecimal: Std.parseFloat,

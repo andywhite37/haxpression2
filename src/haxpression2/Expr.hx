@@ -50,7 +50,7 @@ class Exprs {
     }
   }
 
-  public static function mapAnnotation<V, A, B>(expr : Expr<V, A>, f : Expr<V, A> -> A -> B) : Expr<V, B> {
+  public static function mapAnnotation<V, A, B>(expr : Expr<V, A>, f : AnnotatedExpr<V, A> -> B) : Expr<V, B> {
     return switch expr {
       case ELit(value) : ELit(value);
       case EVar(name) : EVar(name);
