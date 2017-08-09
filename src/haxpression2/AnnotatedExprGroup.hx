@@ -11,12 +11,21 @@ import thx.Tuple;
 import thx.Validation;
 import thx.Validation.*;
 
+import thx.schema.SchemaDSL.*;
+import thx.schema.SimpleSchema;
+import thx.schema.SimpleSchema.*;
+
 using haxpression2.AnnotatedExpr;
 using haxpression2.AnnotatedExprGroup;
 using haxpression2.Expr;
 import haxpression2.parse.ExprParser;
 import haxpression2.parse.ParseError;
+import haxpression2.render.AnnotatedExprRenderer;
 import haxpression2.render.ExprRenderer;
+using haxpression2.render.JSONRenderer;
+import haxpression2.schema.AnnotatedExprGroupSchema;
+import haxpression2.schema.AnnotatedExprSchema;
+import haxpression2.schema.ExprSchema;
 
 typedef AnnotatedExprGroupImpl<V, A> = Map<String, AnnotatedExpr<V, A>>;
 
@@ -54,11 +63,15 @@ abstract AnnotatedExprGroup<V, A>(AnnotatedExprGroupImpl<V, A>) from AnnotatedEx
     }, new Map());
   }
 
-  public static function renderString<V, A>(group : AnnotatedExprGroup<V, A>, valueToString: V -> String) : String {
-    return group.foldLeftWithKeys(function(acc : Array<String>, key : String, value: AnnotatedExpr<V, A>) : Array<String> {
-      return acc.append('$key: ${ExprRenderer.renderString(value.expr, valueToString)}');
+  public static function renderString<V, A>(group : AnnotatedExprGroup<V, A>, valueToString: V -> String, metaToString : A -> String) : String {
+    return group.foldLeftWithKeys(function(acc : Array<String>, key : String, ae: AnnotatedExpr<V, A>) : Array<String> {
+      return acc.append('$key: ${ExprRenderer.renderString(ae.expr, valueToString)}');
     }, [])
     .join("\n");
+  }
+
+  public static function renderJSONString<E, V, A>(group : AnnotatedExprGroup<V, A>, valueSchema: Schema<E, V>, annotationSchema: Schema<E, A>) : String {
+    return AnnotatedExprGroupSchema.schema(valueSchema, annotationSchema).renderJSONString(group);
   }
 
   public static function hasVar<V, A>(group : AnnotatedExprGroup<V, A>, name : String) : Bool {
@@ -93,7 +106,7 @@ abstract AnnotatedExprGroup<V, A>(AnnotatedExprGroupImpl<V, A>) from AnnotatedEx
   public static function expand<V, A>(group : AnnotatedExprGroup<V, A>) : AnnotatedExprGroup<V, ExpandMeta<V, A>> {
     var expandedGroup = group.mapAnnotation(function(name : String, ae : AnnotatedExpr<V, A>) : ExpandMeta<V, A> {
       return new ExpandMeta({
-        original: { ae: ae, vars: ae.getVarsArray() },
+        original: { expr: ae, vars: ae.getVarsArray() },
         expanded: None
       });
     });
@@ -151,19 +164,21 @@ abstract AnnotatedExprGroup<V, A>(AnnotatedExprGroupImpl<V, A>) from AnnotatedEx
   // }
 }
 
+/*
 class AnalyzeResult<V, A> {
   public var annotatedExprGroup(default, null) : AnnotatedExprGroup<V, ExpandMeta<V, A>>;
   public var externalVars(default, null): Array<String>;
   public var orderedVars(default, null): Array<String>;
 }
+*/
 
 typedef OriginalMeta<V, A> = {
-  ae: AnnotatedExpr<V, A>,
+  expr: AnnotatedExpr<V, A>,
   vars: Array<String>
 };
 
 typedef ExpandedMeta<V, A> = {
-  ae: Expr<V, ExpandMeta<V, A>>,
+  expr: Expr<V, ExpandMeta<V, A>>,
   vars: Array<String>
 };
 
@@ -176,13 +191,51 @@ class ExpandMeta<V, A> {
     this.expanded = options.expanded;
   }
 
+  public static function schema<E, V, A>(annotatedExprSchema : Schema<E, AnnotatedExpr<V, A>>, exprSchema : Schema<E, Expr<V, ExpandMeta<V, A>>>) : Schema<E, ExpandMeta<V, A>> {
+    return object(ap2(
+      (orig, exp) -> new ExpandMeta({ original: orig, expanded: exp }),
+      required("original", originalMetaSchema(annotatedExprSchema), (meta : ExpandMeta<V, A>) -> meta.original),
+      optional("expanded", expandedMetaSchema(exprSchema), (meta : ExpandMeta<V, A>) -> meta.expanded)
+    ));
+  }
+
+  public static function originalMetaSchema<E, V, A>(annotatedExprSchema : Schema<E, AnnotatedExpr<V, A>>) : Schema<E, OriginalMeta<V, A>> {
+    return object(ap2(
+      (expr : AnnotatedExpr<V, A>, vars : Array<String>) -> { expr: expr, vars: vars },
+      required("expr", annotatedExprSchema, (meta : OriginalMeta<V, A>)  -> meta.expr),
+      required("vars", array(string()), (meta : OriginalMeta<V, A>) -> meta.vars)
+    ));
+  }
+
+  public static function expandedMetaSchema<E, V, A>(exprSchema : Schema<E, Expr<V, ExpandMeta<V, A>>>) : Schema<E, ExpandedMeta<V, A>> {
+    return object(ap2(
+      (expr : Expr<V, ExpandMeta<V, A>>, vars : Array<String>) -> { expr: expr, vars: vars },
+      required("expr", exprSchema, (meta : ExpandedMeta<V, A>) -> meta.expr),
+      required("vars", array(string()), (meta : ExpandedMeta<V, A>) -> meta.vars)
+    ));
+  }
+
   public function withExpanded(expanded : Expr<V, ExpandMeta<V, A>>) : ExpandMeta<V, A> {
     return new ExpandMeta({
       original: this.original,
       expanded: Some({
-        ae: expanded,
+        expr: expanded,
         vars: expanded.getVars()
       })
     });
+  }
+
+  public static function renderString<V, A>(meta : ExpandMeta<V, A>) : String {
+    var originalStr = renderOriginalMetaString(meta.original);
+    var expandedStr = meta.expanded.map(renderExpandedMetaString).getOrElse("none");
+    return 'ExpandMeta(\n  original: $originalStr\n  expanded: $expandedStr\n)';
+  }
+
+  static function renderOriginalMetaString<V, A>(meta : OriginalMeta<V, A>) : String {
+    return '$meta';
+  }
+
+  static function renderExpandedMetaString<V, A>(meta : ExpandedMeta<V, A>) : String {
+    return '$meta';
   }
 }

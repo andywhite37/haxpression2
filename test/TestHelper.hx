@@ -13,6 +13,7 @@ using haxpression2.Value;
 import haxpression2.eval.EvalError;
 import haxpression2.parse.ExprParser;
 import haxpression2.parse.ParseMeta;
+import haxpression2.schema.ParseMetaSchema;
 import haxpression2.simple.SimpleExpr;
 import haxpression2.simple.SimpleValue;
 
@@ -78,7 +79,7 @@ class TestHelper {
       case Right(actual) :
         if (log) {
           trace(input);
-          trace(SimpleAnnotatedExprRenderer.renderString(actual));
+          trace(SimpleAnnotatedExprRenderer.renderJSONString(actual, SimpleValueSchema.schema(), ParseMetaSchema.schema()));
         }
         Assert.same(expected, actual, pos);
     }
@@ -103,7 +104,7 @@ class TestHelper {
   }
 
   static function evalErrorToString(data: { expr: SimpleAnnotatedExpr, error : SimpleEvalError }) : String {
-    return data.error.getString(ae -> SimpleAnnotatedExprRenderer.renderString(ae));
+    return data.error.getString(ae -> SimpleAnnotatedExprRenderer.renderJSONString(ae, SimpleValueSchema.schema(), ParseMetaSchema.schema()));
   }
 
   public static function evalString(input : String) : VNel<String, SimpleValue> {

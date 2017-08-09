@@ -47,35 +47,3 @@ class ExprRenderer {
     return ExprParser.parseString(input, parserOptions).map(ae -> renderString(ae.expr, valueToString));
   }
 }
-
-class AnnotatedExprRenderer {
-  public static function renderString<V, A>(ae : AnnotatedExpr<V, A>, valueToString : V -> String, annotationToString : A -> String, ?depth = 0) : String {
-    var indent = "  ".repeat(depth);
-    return switch ae.expr {
-      case e = ELit(v) :
-        '${ExprRenderer.renderString(e, valueToString)} ${annotationToString(ae.annotation)}';
-
-      case e = EVar(name) :
-        '${ExprRenderer.renderString(e, valueToString)} ${annotationToString(ae.annotation)}';
-
-      case e = EFunc(name, argExprs) :
-        var argStrings = argExprs.map(argExpr -> renderString(argExpr, valueToString, annotationToString, depth + 1)).join('\n$indent');
-'${ExprRenderer.renderString(e, valueToString)}
-$argStrings';
-
-      case e = EUnOpPre(operator, precendece, operandExpr) :
-        var operandString = renderString(operandExpr, valueToString, annotationToString, depth + 1);
-'${ExprRenderer.renderString(e, valueToString)}
-${indent}${operator} ${annotationToString(ae.annotation)}
-${indent}  Operand: $operandString';
-
-      case e = EBinOp(op, prec, left, right) :
-        var leftString = renderString(left, valueToString, annotationToString, depth + 1);
-        var rightString = renderString(right, valueToString, annotationToString, depth + 1);
-'${ExprRenderer.renderString(e, valueToString)}
-${indent}${op} (prec: ${prec}) ${annotationToString(ae.annotation)}
-${indent}  Left: $leftString
-${indent}  Right: $rightString';
-    };
-  }
-}

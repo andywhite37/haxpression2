@@ -16,6 +16,7 @@ import haxpression2.eval.EvalError;
 import haxpression2.parse.ExprParser;
 import haxpression2.parse.ParseError;
 import haxpression2.parse.ParseMeta;
+import haxpression2.render.AnnotatedExprRenderer;
 import haxpression2.render.ExprRenderer;
 import haxpression2.schema.AnnotatedExprSchema;
 import haxpression2.schema.ExprSchema;
@@ -82,8 +83,8 @@ class SimpleExprRenderer {
 }
 
 class SimpleAnnotatedExprRenderer {
-  public static function renderString(ae : SimpleAnnotatedExpr) : String {
-    return AnnotatedExprRenderer.renderString(ae, SimpleValueRenderer.renderString, meta -> meta.toString());
+  public static function renderJSONString<E, A>(ae : AnnotatedExpr<SimpleValue, A>, valueSchema : Schema<E, SimpleValue>, annotationSchema : Schema<E, A>) : String {
+    return AnnotatedExprRenderer.renderJSONString(ae, valueSchema, annotationSchema);
   }
 }
 
@@ -98,8 +99,8 @@ class SimpleAnnotatedExprEvaluator {
 }
 
 class SimpleAnnotatedExprGroups {
-  public static function renderString<A>(group : SimpleAnnotatedExprGroup<A>) : String {
-    return AnnotatedExprGroup.renderString(group, SimpleValueRenderer.renderString);
+  public static function renderString<A>(group : SimpleAnnotatedExprGroup<A>, metaToString : A -> String) : String {
+    return AnnotatedExprGroup.renderString(group, SimpleValueRenderer.renderString, metaToString);
   }
 }
 

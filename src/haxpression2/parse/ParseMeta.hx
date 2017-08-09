@@ -14,6 +14,10 @@ class ParseMeta {
   }
 
   public function toString() {
-    return '[o:${index.offset}, l:${index.line}, c:${index.column}]';
+    return 'ParseMeta(${index.offset}, ${index.line}, ${index.column})';
+  }
+
+  public static function renderString(p : ParseMeta) : String {
+    return p.toString();
   }
 }
