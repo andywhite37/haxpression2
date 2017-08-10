@@ -13,7 +13,7 @@ class EvalError<Expr> extends Error {
     this.expr = expr;
   }
 
-  public function getString(exprToString : Expr -> String) : String {
+  public function renderString(exprToString : Expr -> String) : String {
     return '$message in expression: ${exprToString(expr)}';
   }
 }

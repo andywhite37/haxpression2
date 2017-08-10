@@ -1,19 +1,19 @@
 package haxpression2.simple;
 
 using thx.Arrays;
-import thx.Either;
 import thx.Validation;
 import thx.Validation.*;
 
 import thx.schema.SimpleSchema;
 
-import haxpression2.BinOp;
 import haxpression2.Expr;
-import haxpression2.UnOp;
 import haxpression2.AnnotatedExprGroup;
-import haxpression2.eval.ExprEvaluator;
+import haxpression2.eval.AnnotatedExprEvaluator;
 import haxpression2.eval.EvalError;
+import haxpression2.eval.ExprEvaluatorOptions;
 import haxpression2.parse.ExprParser;
+import haxpression2.parse.ExprParserBinOp;
+import haxpression2.parse.ExprParserUnOp;
 import haxpression2.parse.ParseError;
 import haxpression2.parse.ParseMeta;
 import haxpression2.render.AnnotatedExprRenderer;
@@ -28,19 +28,19 @@ import haxpression2.simple.SimpleValue;
 typedef SimpleExpr = Expr<SimpleValue, ParseMeta>;
 typedef SimpleAnnotatedExpr = AnnotatedExpr<SimpleValue, ParseMeta>;
 
-typedef SimpleParserOptions = ExprParserOptions<SimpleValue, Float, ParseMeta>;
+typedef SimpleExprParserOptions = ExprParserOptions<SimpleValue, Float, ParseMeta>;
 typedef SimpleParseError = ParseError<SimpleAnnotatedExpr>;
-typedef SimpleParseResult = Either<SimpleParseError, SimpleAnnotatedExpr>;
+typedef SimpleExprParserResult = ExprParserResult<SimpleValue, ParseMeta>;
 
-typedef SimpleEvalUnOp = EvalUnOp<SimpleValue>;
-typedef SimpleEvalBinOp = EvalBinOp<SimpleValue>;
-typedef SimpleEvalFunc = EvalFunc<SimpleValue>;
+typedef SimpleExprEvaluatorUnOp = ExprEvaluatorUnOp<SimpleValue>;
+typedef SimpleExprEvaluatorBinOp = ExprEvaluatorBinOp<SimpleValue>;
+typedef SimpleExprEvaluatorFunc = ExprEvaluatorFunc<SimpleValue>;
 typedef SimpleEvalError = EvalError<SimpleAnnotatedExpr>;
-typedef SimpleEvalOptions = EvalOptions<SimpleAnnotatedExpr, SimpleEvalError, SimpleValue, ParseMeta>;
-typedef SimpleEvalResult = EvalResult<SimpleAnnotatedExpr, SimpleEvalError, SimpleValue>;
-typedef SimpleEvalStringResult = EvalStringResult<SimpleAnnotatedExpr, SimpleParseError, SimpleEvalError, SimpleValue>;
+typedef SimpleExprEvaluatorOptions = ExprEvaluatorOptions<SimpleAnnotatedExpr, SimpleEvalError, SimpleValue, ParseMeta>;
+typedef SimpleExprEvaluatorResult = ExprEvaluatorResult<SimpleAnnotatedExpr, SimpleEvalError, SimpleValue>;
+typedef SimpleExprStringEvaluatorResult = ExprStringEvaluatorResult<SimpleAnnotatedExpr, SimpleParseError, SimpleEvalError, SimpleValue>;
 
-typedef SimpleFormatStringResult = Either<SimpleParseError, String>;
+typedef SimpleExprFormatStringResult = ExprFormatStringResult<SimpleValue, ParseMeta>;
 
 typedef SimpleAnnotatedExprGroup<A> = AnnotatedExprGroup<SimpleValue, A>;
 
@@ -59,15 +59,15 @@ class SimpleAnnotatedExprSchema {
 }
 
 class SimpleExprParser {
-  public static function parseString(input : String, options: SimpleParserOptions) : SimpleParseResult {
+  public static function parseString(input : String, options: SimpleExprParserOptions) : SimpleExprParserResult {
     return ExprParser.parseString(input, options);
   }
 
-  public static function parseStrings(input : Array<String>, options : SimpleParserOptions) : VNel<ParseError<SimpleAnnotatedExpr>, Array<SimpleAnnotatedExpr>> {
+  public static function parseStrings(input : Array<String>, options : SimpleExprParserOptions) : VNel<ParseError<SimpleAnnotatedExpr>, Array<SimpleAnnotatedExpr>> {
     return ExprParser.parseStrings(input, options);
   }
 
-  public static function parseStringMap(input : Map<String, String>, options : SimpleParserOptions) : VNel<ParseError<SimpleAnnotatedExpr>, Map<String, SimpleAnnotatedExpr>> {
+  public static function parseStringMap(input : Map<String, String>, options : SimpleExprParserOptions) : VNel<ParseError<SimpleAnnotatedExpr>, Map<String, SimpleAnnotatedExpr>> {
     return ExprParser.parseStringMap(input, options);
   }
 }
@@ -77,7 +77,7 @@ class SimpleExprRenderer {
     return ExprRenderer.renderString(expr, SimpleValueRenderer.renderString);
   }
 
-  public static function formatString(input : String, options: SimpleParserOptions) : SimpleFormatStringResult {
+  public static function formatString(input : String, options: SimpleExprParserOptions) : SimpleExprFormatStringResult {
     return ExprRenderer.formatString(input, options, SimpleValueRenderer.renderString);
   }
 }
@@ -89,28 +89,28 @@ class SimpleAnnotatedExprRenderer {
 }
 
 class SimpleAnnotatedExprEvaluator {
-  public static function eval(expr : SimpleAnnotatedExpr, evalOptions: SimpleEvalOptions) : SimpleEvalResult {
+  public static function eval(expr : SimpleAnnotatedExpr, evalOptions: SimpleExprEvaluatorOptions) : SimpleExprEvaluatorResult {
     return AnnotatedExprEvaluator.eval(expr, evalOptions);
   }
 
-  public static function evalString(input: String, parserOptions: SimpleParserOptions, evalOptions: SimpleEvalOptions) : SimpleEvalStringResult {
+  public static function evalString(input: String, parserOptions: SimpleExprParserOptions, evalOptions: SimpleExprEvaluatorOptions) : SimpleExprStringEvaluatorResult {
     return AnnotatedExprEvaluator.evalString(input, parserOptions, evalOptions);
   }
 }
 
-class SimpleAnnotatedExprGroups {
-  public static function renderString<A>(group : SimpleAnnotatedExprGroup<A>, metaToString : A -> String) : String {
-    return AnnotatedExprGroup.renderString(group, SimpleValueRenderer.renderString, metaToString);
+class SimpleAnnotatedExprGroupRenderer {
+  public static function renderPlainString<A>(group : SimpleAnnotatedExprGroup<A>, metaToString : A -> String) : String {
+    return AnnotatedExprGroup.renderPlainString(group, SimpleValueRenderer.renderString, metaToString);
   }
 }
 
 class SimpleExprs {
-  public static function getStandardParserOptions() : SimpleParserOptions {
+  public static function getStandardExprParserOptions() : SimpleExprParserOptions {
     return {
       variableNameRegexp: ~/[a-z][a-z0-9]*(?:!?[a-z0-9]+)?/i,
       functionNameRegexp: ~/[a-z][a-z0-9]*/i,
-      binOps: SimpleExprs.getStandardBinOps(),
-      unOps: SimpleExprs.getStandardUnOps(),
+      binOps: SimpleExprs.getStandardExprParserBinOps(),
+      unOps: SimpleExprs.getStandardExprParserUnOps(),
       parseDecimal: Std.parseFloat,
       convertValue: thx.Functions.identity,
       annotate: ParseMeta.new
@@ -118,20 +118,20 @@ class SimpleExprs {
   }
 
   // https://www.haskell.org/onlinereport/haskell2010/haskellch4.html#x10-820004.4.2
-  public static function getStandardBinOps() : Array<BinOp> {
+  public static function getStandardExprParserBinOps() : Array<ExprParserBinOp> {
     return [
-      new BinOp(~/\*|\//, 7),           // * /
-      new BinOp(~/\+|-/, 6),            // + -
-      new BinOp(~/==|!=|<=|<|>=|>/, 4), // == != < <= > >=
-      new BinOp(~/&&/, 3),              // &&
-      new BinOp(~/\|\|/, 2)            // ||
+      new ExprParserBinOp(~/\*|\//, 7),
+      new ExprParserBinOp(~/\+|-/, 6),
+      new ExprParserBinOp(~/==|!=|<=|<|>=|>/, 4),
+      new ExprParserBinOp(~/&&/, 3),
+      new ExprParserBinOp(~/\|\|/, 2)
     ];
   }
 
-  public static function getStandardEvalBinOps() : Map<String, EvalBinOp<SimpleValue>> {
+  public static function getStandardExprEvaluatorBinOps() : Map<String, ExprEvaluatorBinOp<SimpleValue>> {
     return [
       "*" => mul,
-      "/" => div,
+      "/" => safeDiv,
       "+" => add,
       "-" => sub,
       "==" => eq,
@@ -145,19 +145,19 @@ class SimpleExprs {
     ];
   }
 
-  public static function getStandardUnOps() : { pre: Array<UnOp>, post: Array<UnOp> } {
+  public static function getStandardExprParserUnOps() : { pre: Array<ExprParserUnOp>, post: Array<ExprParserUnOp> } {
     return {
       pre: [
         // TODO: I don't think the precedence of these really has any impact
-        new UnOp(~/-/, 2),
-        new UnOp(~/~/, 1),
+        new ExprParserUnOp(~/-/, 2),
+        new ExprParserUnOp(~/~/, 1),
       ],
       post: [
       ]
     };
   }
 
-  public static function getStandardEvalUnOps() : { pre: Map<String, SimpleEvalUnOp>, post: Map<String, SimpleEvalUnOp> } {
+  public static function getStandardExprEvaluatorUnOps() : { pre: Map<String, SimpleExprEvaluatorUnOp>, post: Map<String, SimpleExprEvaluatorUnOp> } {
     return {
       pre: [
         "-" => negate,
@@ -167,7 +167,7 @@ class SimpleExprs {
     };
   }
 
-  public static function getStandardEvalFunctions() : Map<String, SimpleEvalFunc> {
+  public static function getStandardExprEvaluatorFuncs() : Map<String, SimpleExprEvaluatorFunc> {
     return [
       "sum" => sum
     ];
@@ -254,7 +254,7 @@ class SimpleExprs {
     });
   }
 
-  public static function div(l : SimpleValue, r: SimpleValue) : VNel<String, SimpleValue> {
+  public static function safeDiv(l : SimpleValue, r: SimpleValue) : VNel<String, SimpleValue> {
     return reduceValues({
       values: [l, r],
       intInt: (a, b) -> b == 0 ? successNel(VNM) : successNel(a / b).map(VNum),

@@ -27,7 +27,7 @@ class AnnotatedExpr<V, A> {
     return new AnnotatedExpr(Exprs.mapAnnotation(ae.expr, f), f(ae));
   }
 
-  public static function getVars<V, A>(ae : AnnotatedExpr<V, A>) : Map<String, Array<A>> {
+  public static function getVarsMap<V, A>(ae : AnnotatedExpr<V, A>) : Map<String, Array<A>> {
     function appendVar(vars : Map<String, Array<A>>, name: String, a : A) : Map<String, Array<A>> {
       if (vars.exists(name)) {
         vars.get(name).push(a);
@@ -51,19 +51,19 @@ class AnnotatedExpr<V, A> {
         case EVar(name) : appendVar(vars, name, ae.annotation);
         case EFunc(name, argExprs) :
           argExprs.reduce(function(vars : Map<String, Array<A>>, argExpr : AnnotatedExpr<V, A>) {
-            return mergeVars(vars, getVars(argExpr));
+            return mergeVars(vars, getVarsMap(argExpr));
           }, vars);
-        case EUnOpPre(_, _, operandExpr) : mergeVars(vars, getVars(operandExpr));
+        case EUnOpPre(_, _, operandExpr) : mergeVars(vars, getVarsMap(operandExpr));
         case EBinOp(_, _, leftExpr, rightExpr) :
-          var varsWithLeftVars = mergeVars(vars, getVars(leftExpr));
-          mergeVars(varsWithLeftVars, getVars(rightExpr));
+          var varsWithLeftVars = mergeVars(vars, getVarsMap(leftExpr));
+          mergeVars(varsWithLeftVars, getVarsMap(rightExpr));
       }
     }
     return accVars(new Map(), ae);
   }
 
   public static function getVarsArray<V, A>(ae : AnnotatedExpr<V, A>) : Array<String> {
-    return Exprs.getVars(ae.expr);
+    return Exprs.getVarsArray(ae.expr);
   }
 
   public static function substitute<V, A>(target : AnnotatedExpr<V, A>, name : String, sub : AnnotatedExpr<V, A>) : AnnotatedExpr<V, A> {

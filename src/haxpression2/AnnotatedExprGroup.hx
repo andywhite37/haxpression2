@@ -3,15 +3,11 @@ package haxpression2;
 import haxe.ds.Option;
 
 using thx.Arrays;
-using thx.Eithers;
 using thx.Iterators;
 using thx.Maps;
-import thx.Nel;
 using thx.Options;
-import thx.Tuple;
 import thx.Unit;
 import thx.Validation;
-import thx.Validation.*;
 
 import thx.schema.SchemaDSL.*;
 import thx.schema.SimpleSchema;
@@ -25,12 +21,9 @@ using haxpression2.AnnotatedExprGroup;
 using haxpression2.Expr;
 import haxpression2.parse.ExprParser;
 import haxpression2.parse.ParseError;
-import haxpression2.render.AnnotatedExprRenderer;
 import haxpression2.render.ExprRenderer;
-using haxpression2.render.JSONRenderer;
+using haxpression2.render.SchemaJSONRenderer;
 import haxpression2.schema.AnnotatedExprGroupSchema;
-import haxpression2.schema.AnnotatedExprSchema;
-import haxpression2.schema.ExprSchema;
 
 typedef AnnotatedExprGroupImpl<V, A> = Map<String, AnnotatedExpr<V, A>>;
 
@@ -68,7 +61,7 @@ abstract AnnotatedExprGroup<V, A>(AnnotatedExprGroupImpl<V, A>) from AnnotatedEx
     }, new Map());
   }
 
-  public static function renderString<V, A>(group : AnnotatedExprGroup<V, A>, valueToString: V -> String, metaToString : A -> String) : String {
+  public static function renderPlainString<V, A>(group : AnnotatedExprGroup<V, A>, valueToString: V -> String, metaToString : A -> String) : String {
     return group.foldLeftWithKeys(function(acc : Array<String>, key : String, ae: AnnotatedExpr<V, A>) : Array<String> {
       return acc.append('$key: ${ExprRenderer.renderString(ae.expr, valueToString)}');
     }, [])
@@ -170,7 +163,7 @@ abstract AnnotatedExprGroup<V, A>(AnnotatedExprGroupImpl<V, A>) from AnnotatedEx
     var definedVars = group.unwrap().keys().toArray();
     var externalVars = result.allExternalVars.distinct();
     var allVars = definedVars.concat(externalVars);
-    var dependencySortedVars = dependencySort(expandedGroup, allVars);
+    var dependencySortedVars = dependencySortVars(expandedGroup, allVars);
 
     return new AnalyzeResult({
       analyzedExprs: result.analyzedExprs,
@@ -181,7 +174,7 @@ abstract AnnotatedExprGroup<V, A>(AnnotatedExprGroupImpl<V, A>) from AnnotatedEx
     });
   }
 
-  public static function dependencySort<V, A>(group : AnnotatedExprGroup<V, A>, vars : Array<String>) : Array<String> {
+  public static function dependencySortVars<V, A>(group : AnnotatedExprGroup<V, A>, vars : Array<String>) : Array<String> {
     var seen : Map<String, Bool> = new Map();
     return vars.reduce(function(graph : graphx.StringGraph, name : String) : graphx.StringGraph {
       if (seen.exists(name)) {

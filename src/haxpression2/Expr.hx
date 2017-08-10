@@ -27,14 +27,14 @@ class Exprs {
     };
   }
 
-  public static function getVars<V, A>(expr : Expr<V, A>) : Array<String> {
+  public static function getVarsArray<V, A>(expr : Expr<V, A>) : Array<String> {
     function accVars(acc: Array<String>, expr : Expr<V, A>) : Array<String> {
       return switch expr {
         case ELit(_) : acc;
         case EVar(name) : acc.concat([name]);
-        case EFunc(name, argExprs) : acc.concat(argExprs.map(ae -> ae.expr).flatMap(getVars));
-        case EUnOpPre(_, _, operandExpr) : acc.concat(getVars(operandExpr.expr));
-        case EBinOp(_, _, leftExpr, rightExpr) : acc.concat(getVars(leftExpr.expr)).concat(getVars(rightExpr.expr));
+        case EFunc(name, argExprs) : acc.concat(argExprs.map(ae -> ae.expr).flatMap(getVarsArray));
+        case EUnOpPre(_, _, operandExpr) : acc.concat(getVarsArray(operandExpr.expr));
+        case EBinOp(_, _, leftExpr, rightExpr) : acc.concat(getVarsArray(leftExpr.expr)).concat(getVarsArray(rightExpr.expr));
       };
     }
     return accVars([], expr).distinct();

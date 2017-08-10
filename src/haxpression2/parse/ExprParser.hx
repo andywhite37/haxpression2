@@ -7,29 +7,32 @@ using thx.Maps;
 import thx.Nel;
 import thx.Tuple;
 import thx.Validation;
-import thx.Validation.*;
 
 import Parsihax.*;
 using Parsihax;
 
 import haxpression2.AnnotatedExpr;
-import haxpression2.Expr;
 import haxpression2.Value;
 import haxpression2.parse.CoreParser.ows;
 import haxpression2.parse.ParseError;
+import haxpression2.parse.ValueParser;
 
 typedef ExprParserOptions<V, N, A> = {
+  > ValueParserOptions<N>,
   variableNameRegexp: EReg,
   functionNameRegexp: EReg,
-  parseDecimal: String -> N,
   convertValue: Value<N> -> V,
-  binOps: Array<BinOp>,
+  binOps: Array<ExprParserBinOp>,
   unOps: {
-    pre: Array<UnOp>,
-    post: Array<UnOp>
+    pre: Array<ExprParserUnOp>,
+    post: Array<ExprParserUnOp>
   },
   annotate: Index -> A
 };
+
+typedef ExprParserResult<V, A> = Either<ParseError<AnnotatedExpr<V, A>>, AnnotatedExpr<V, A>>;
+typedef ExprArrayParserResult<V, A> = VNel<ParseError<AnnotatedExpr<V, A>>, Array<AnnotatedExpr<V, A>>>;
+typedef ExprMapParserResult<V, A> = VNel<ParseError<AnnotatedExpr<V, A>>, Map<String, AnnotatedExpr<V, A>>>;
 
 typedef ExprParsers<V, A> = {
   expr: Parser<AnnotatedExpr<V, A>>,
@@ -103,7 +106,7 @@ class ExprParser {
     var exprUnOpPres : Array<Parser<AnnotatedExpr<V, A>>> =
       options.unOps.pre
         .order((a, b) -> b.precedence - a.precedence)
-        .map(function(unOp : UnOp) : Parser<AnnotatedExpr<V, A>> {
+        .map(function(unOp : ExprParserUnOp) : Parser<AnnotatedExpr<V, A>> {
           return ows.then(
             index().flatMap(index ->
               unOp.operatorRegexp.regexp()
@@ -120,7 +123,7 @@ class ExprParser {
     var exprBinOps : Array<Parser<AnnotatedExprBinOp<V, A>>> =
       options.binOps
         .order((a, b) -> b.precedence - a.precedence) // precedence descending
-        .map(function(binOp : BinOp) : Parser<AnnotatedExprBinOp<V, A>> {
+        .map(function(binOp : ExprParserBinOp) : Parser<AnnotatedExprBinOp<V, A>> {
           return index().flatMap(index ->
             ows
               .then(regexp(binOp.operatorRegexp))
@@ -153,7 +156,7 @@ class ExprParser {
     };
   }
 
-  public static function parseString<V, N, A>(input : String, options : ExprParserOptions<V, N, A>) : Either<ParseError<AnnotatedExpr<V, A>>, AnnotatedExpr<V, A>> {
+  public static function parseString<V, N, A>(input : String, options : ExprParserOptions<V, N, A>) : ExprParserResult<V, A> {
     var parseResult : Result<AnnotatedExpr<V, A>> = create(options).expr.skip(eof()).apply(input);
     return if (parseResult.status) {
       Right(parseResult.value);
@@ -162,13 +165,13 @@ class ExprParser {
     };
   }
 
-  public static function parseStrings<V, N, A>(input : Array<String>, options : ExprParserOptions<V, N, A>) : VNel<ParseError<AnnotatedExpr<V, A>>, Array<AnnotatedExpr<V, A>>> {
+  public static function parseStrings<V, N, A>(input : Array<String>, options : ExprParserOptions<V, N, A>) : ExprArrayParserResult<V, A> {
     return input.traverseValidation(function(str : String) {
       return parseString(str, options).toVNel();
     }, Nel.semigroup());
   }
 
-  public static function parseStringMap<V, N, A>(input : Map<String, String>, options : ExprParserOptions<V, N, A>) : VNel<ParseError<AnnotatedExpr<V, A>>, Map<String, AnnotatedExpr<V, A>>> {
+  public static function parseStringMap<V, N, A>(input : Map<String, String>, options : ExprParserOptions<V, N, A>) : ExprMapParserResult<V, A> {
     return input
       .tuples()
       .traverseValidation(function(keyStr : Tuple<String, String>) : VNel<ParseError<AnnotatedExpr<V, A>>, Tuple<String, AnnotatedExpr<V, A>>> {

@@ -13,6 +13,8 @@ typedef ValueParserOptions<N> = {
   parseDecimal : String -> N
 };
 
+typedef ValueParserResult<N> = Either<ParseError<Value<N>>, Value<N>>;
+
 typedef ValueParsers<N> = {
   value: Parser<Value<N>>,
   _internal: {
@@ -47,7 +49,7 @@ class ValueParser {
     };
   }
 
-  public static function parseString<N>(input : String, options: ValueParserOptions<N>) : Either<ParseError<Value<N>>, Value<N>> {
+  public static function parseString<N>(input : String, options: ValueParserOptions<N>) : ValueParserResult<N> {
     var parseResult = create(options).value.skip(eof()).apply(input);
     return if (parseResult.status) {
       Right(parseResult.value);

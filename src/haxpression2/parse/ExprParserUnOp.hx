@@ -1,6 +1,6 @@
-package haxpression2;
+package haxpression2.parse;
 
-class UnOp {
+class ExprParserUnOp {
   public var operatorRegexp(default, null) : EReg;
   public var precedence(default, null) : Int;
 

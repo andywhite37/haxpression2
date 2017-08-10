@@ -152,7 +152,7 @@ class TestExprSchema {
     var input = "1+ 2 + a  /b+ func ( true  ,   'hi' ) - sin(cos(x)/atan2(y), false) * ((a + b) / 3)  ";
 
     // Parse string
-    SimpleExprParser.parseString(input, SimpleExprs.getStandardParserOptions())
+    SimpleExprParser.parseString(input, SimpleExprs.getStandardExprParserOptions())
       .toRight()
       .map(function(ae : SimpleAnnotatedExpr) : Dynamic {
         // Render Dynamic

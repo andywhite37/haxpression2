@@ -8,6 +8,8 @@ import haxpression2.Expr;
 import haxpression2.parse.ExprParser;
 import haxpression2.parse.ParseError;
 
+typedef ExprFormatStringResult<V, A> = Either<ParseError<AnnotatedExpr<V, A>>, String> ;
+
 class ExprRenderer {
   public static function renderString<V, A>(expr : Expr<V, A>, valueToString : V -> String) : String {
     return switch expr {
@@ -43,7 +45,7 @@ class ExprRenderer {
     }
   }
 
-  public static function formatString<V, D, A>(input : String, parserOptions : ExprParserOptions<V, D, A>, valueToString : V -> String) : Either<ParseError<AnnotatedExpr<V, A>>, String> {
+  public static function formatString<V, D, A>(input : String, parserOptions : ExprParserOptions<V, D, A>, valueToString : V -> String) : ExprFormatStringResult<V, A> {
     return ExprParser.parseString(input, parserOptions).map(ae -> renderString(ae.expr, valueToString));
   }
 }

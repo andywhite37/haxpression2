@@ -267,14 +267,14 @@ class TestExprParser {
       "b" => "c",
       "c" => "" // bad
     ];
-    switch ExprParser.parseStringMap(input, TestHelper.getTestParserOptions()) {
+    switch ExprParser.parseStringMap(input, TestHelper.getTestExprParserOptions()) {
       case Left(errors) : Assert.same(2, errors.toArray().length);
       case Right(_) : Assert.fail("Should have failed to parse");
     };
   }
 
   public static function assertParseStringMap(expected : Map<String, SimpleAnnotatedExpr>, input : Map<String, String>, ?pos : haxe.PosInfos) : Void {
-    switch ExprParser.parseStringMap(input, TestHelper.getTestParserOptions()) {
+    switch ExprParser.parseStringMap(input, TestHelper.getTestExprParserOptions()) {
       case Left(errors) : Assert.fail('failed to parse map: ${errors}', pos);
       case Right(actual): Assert.same(expected, actual);
     };

@@ -9,7 +9,7 @@ import thx.schema.SimpleSchema.*;
 
 using haxpression2.AnnotatedExprGroup;
 import haxpression2.parse.ParseMeta;
-using haxpression2.render.JSONRenderer;
+using haxpression2.render.SchemaJSONRenderer;
 import haxpression2.schema.AnnotatedExprSchema;
 import haxpression2.schema.ExprSchema;
 import haxpression2.schema.ParseMetaSchema;
@@ -21,13 +21,13 @@ import TestHelper;
 class TestAnnotatedExprGroup {
   public function new() {}
 
-  public function testExprGroup() {
+  public function testRenderPlainString() {
     AnnotatedExprGroup.parseStringMap([
       "a" => "1",
       "b" => "2",
       "c" => "a + b",
-    ], TestHelper.getTestParserOptions())
-    .map(group -> AnnotatedExprGroup.renderString(group, SimpleValueRenderer.renderString, ParseMeta.renderString))
+    ], TestHelper.getTestExprParserOptions())
+    .map(group -> SimpleAnnotatedExprGroup.renderPlainString(group, SimpleValueRenderer.renderString, ParseMeta.renderString))
     .map(groupString -> Assert.same("a: 1\nb: 2\nc: a + b", groupString));
   }
 
@@ -39,7 +39,7 @@ class TestAnnotatedExprGroup {
       "d" => "a + c + 6 + x + b",
       "e" => "44 / 10 + a",
       "x" => "y * z"
-    ], TestHelper.getTestParserOptions())
+    ], TestHelper.getTestExprParserOptions())
     .map(group -> {
       //trace('original:\n${AnnotatedExprGroup.renderString(group, SimpleValueRenderer.renderString, ParseMeta.renderString)}');
       return group;
@@ -59,9 +59,9 @@ class TestAnnotatedExprGroup {
       "d" => "a + c + 6 + x + b",
       "e" => "44 / 10 + a",
       "x" => "y * z"
-    ], TestHelper.getTestParserOptions())
+    ], TestHelper.getTestExprParserOptions())
     .map(group -> {
-      trace('original:\n${AnnotatedExprGroup.renderString(group, SimpleValueRenderer.renderString, ParseMeta.renderString)}');
+      trace('original:\n${AnnotatedExprGroup.renderPlainString(group, SimpleValueRenderer.renderString, ParseMeta.renderString)}');
       return group;
     })
     .map(group -> group.analyze(SimpleValueRenderer.renderString))
@@ -86,7 +86,7 @@ class TestAnnotatedExprGroup {
       "e" => "44 / 10 + a"
     ], TestHelper.getTestParserOptions())
     .map(group -> {
-      trace('original:\n${AnnotatedExprGroup.renderString(group, SimpleValueRenderer.renderString, ParseMeta.renderString)}');
+      trace('original:\n${AnnotatedExprGroup.renderPlainString(group, SimpleValueRenderer.renderString, ParseMeta.renderString)}');
       return group;
     })
     .map(group -> group.expand())
