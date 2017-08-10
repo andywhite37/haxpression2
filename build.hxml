@@ -10,6 +10,7 @@
 # JavaScript
 -cp test
 -lib utest
+-lib hxnodejs
 -main TestAll
 -js bin/runner.js
 -cmd echo "--- JavaScript ---"

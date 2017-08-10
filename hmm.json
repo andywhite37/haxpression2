@@ -1,11 +1,25 @@
 {
   "dependencies": [
     {
+      "name": "git@github.com:HaxeFoundation/hxnodejs",
+      "type": "git",
+      "dir": null,
+      "ref": "master",
+      "url": "046fd03"
+    },
+    {
       "name": "graphx",
       "type": "git",
       "dir": null,
       "ref": "bd61218",
       "url": "git@github.com:andywhite37/graphx"
+    },
+    {
+      "name": "hxnodejs",
+      "type": "git",
+      "dir": null,
+      "ref": "046fd03",
+      "url": "git@github.com:HaxeFoundation/hxnodejs"
     },
     {
       "name": "monax",

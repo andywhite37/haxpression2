@@ -105,13 +105,17 @@ class SimpleAnnotatedExprGroupRenderer {
   public static function renderPlainString<A>(group : SimpleAnnotatedExprGroup<A>, metaToString : A -> String) : String {
     return AnnotatedExprGroup.renderPlainString(group, SimpleValueRenderer.renderString, metaToString);
   }
+
+  public static function renderJSONString<E, A>(group : SimpleAnnotatedExprGroup<A>, metaSchema : Schema<E, A>) : String {
+    return AnnotatedExprGroup.renderJSONString(group, SimpleValueSchema.schema(), metaSchema);
+  }
 }
 
 class SimpleExprs {
   public static function getStandardExprParserOptions<A>(options: { annotate : Index -> A }) : SimpleExprParserOptions<A> {
     return {
-      variableNameRegexp: ~/[a-z][a-z0-9]*(?:!?[a-z0-9]+)?/i,
-      functionNameRegexp: ~/[a-z][a-z0-9]*/i,
+      variableNameRegexp: ~/[a-z_][a-z0-9_]*(?:!?[a-z0-9_]+)?/i,
+      functionNameRegexp: ~/[a-z_][a-z0-9_]*/i,
       binOps: SimpleExprs.getStandardExprParserBinOps(),
       unOps: SimpleExprs.getStandardExprParserUnOps(),
       parseDecimal: Std.parseFloat,

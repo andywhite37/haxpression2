@@ -4,6 +4,7 @@ import utest.ui.Report;
 class TestAll {
   public static function main() {
     var runner = new Runner();
+
     runner.addCase(new haxpression2.TestAnnotatedExpr());
     runner.addCase(new haxpression2.TestAnnotatedExprGroup());
     runner.addCase(new haxpression2.TestExpr());
@@ -14,6 +15,11 @@ class TestAll {
     runner.addCase(new haxpression2.schema.TestAnnotatedExprSchema());
     runner.addCase(new haxpression2.schema.TestExprSchema());
     runner.addCase(new haxpression2.schema.TestValueSchema());
+
+#if js
+    runner.addCase(new mappings.TestMappings());
+#end
+
     Report.create(runner);
     runner.run();
   }

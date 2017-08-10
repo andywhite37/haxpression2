@@ -30,7 +30,7 @@ class TestAnnotatedExprGroup {
       "c" => "a + b",
     ], TestHelper.getTestExprParserOptions({ annotate: ParseMeta.new }))
     .map(group -> SimpleAnnotatedExprGroup.renderPlainString(group, SimpleValueRenderer.renderString, ParseMeta.renderString))
-    .map(groupString -> Assert.same("a: 1\nb: 2\nc: a + b", groupString));
+    .map(groupString -> Assert.same("a:\n  1\nb:\n  2\nc:\n  a + b", groupString));
   }
 
   public function testExpand1() : Void {

@@ -19,6 +19,7 @@ import graphx.NodeOrValue;
 using haxpression2.AnnotatedExpr;
 using haxpression2.AnnotatedExprGroup;
 using haxpression2.Expr;
+using haxpression2.Value;
 using haxpression2.eval.AnnotatedExprEvaluator;
 import haxpression2.parse.ExprParser;
 import haxpression2.parse.ParseError;
@@ -49,9 +50,24 @@ abstract AnnotatedExprGroup<V, A>(AnnotatedExprGroupImpl<V, A>) from AnnotatedEx
     coalesceFunctionName: String,
     parserOptions: ExprParserOptions<V, N, A>
   ) : VNel<ParseError<AnnotatedExpr<V, A>>, AnnotatedExprGroup<V, A>> {
-    var coalesceMap : Map<String, String> = fallbackMap.mapValues(function(exprStrings : Array<String>) : String {
-      return '${coalesceFunctionName}(${exprStrings.join(", ")})';
-    }, new Map());
+    var coalesceMap : Map<String, String> = fallbackMap
+      .foldLeftWithKeys(function(acc : Map<String, Array<String>>, key : String, exprStrings : Array<String>) {
+        // If a field is not defined, remove it from the group
+        if (exprStrings != null && exprStrings.length >= 1) {
+          acc.set(key, exprStrings);
+        }
+        return acc;
+      }, new Map())
+      .mapValues(function(exprStrings : Array<String>) : String {
+        return if (exprStrings.length == 0) {
+          // This should not happen because we filtered them out above
+          Values.NA_STR;
+        } else if (exprStrings.length == 1) {
+          exprStrings[0];
+        } else {
+          '${coalesceFunctionName}(${exprStrings.join(", ")})';
+        }
+      }, new Map());
     return parseStringMap(coalesceMap, parserOptions);
   }
 
@@ -64,7 +80,7 @@ abstract AnnotatedExprGroup<V, A>(AnnotatedExprGroupImpl<V, A>) from AnnotatedEx
 
   public static function renderPlainString<V, A>(group : AnnotatedExprGroup<V, A>, valueToString: V -> String, metaToString : A -> String) : String {
     return group.foldLeftWithKeys(function(acc : Array<String>, key : String, ae: AnnotatedExpr<V, A>) : Array<String> {
-      return acc.append('$key: ${ExprRenderer.renderString(ae.expr, valueToString)}');
+      return acc.append('$key:\n  ${ExprRenderer.renderString(ae.expr, valueToString)}');
     }, [])
     .join("\n");
   }
@@ -245,6 +261,44 @@ class AnalyzeResult<V, A> {
       required("externalVars", array(string()), (obj : AnalyzeResult<V, A>) -> obj.externalVars),
       required("dependencySortedVars", array(string()), (obj : AnalyzeResult<V, A>) -> obj.dependencySortedVars)
     ));
+  }
+
+  public static function logPlainString<V, A>(result : AnalyzeResult<V, A>) : Void {
+    var log = js.Node.console.log;
+    log('--------------');
+    log('Analyze Result');
+    log('--------------');
+
+    log('All vars ${result.allVars.length}');
+    for (v in result.allVars.order(thx.Strings.compare)) {
+      log('  $v');
+    }
+
+    log('Defined vars ${result.definedVars.length}');
+    for (v in result.definedVars.order(thx.Strings.compare)) {
+      log('  $v');
+    }
+
+    log('External vars ${result.externalVars.length}');
+    for (v in result.externalVars.order(thx.Strings.compare)) {
+      log('  $v');
+    }
+
+    log('Sorted vars ${result.dependencySortedVars.length}');
+    for (v in result.dependencySortedVars) {
+      log('  $v');
+    }
+
+    log('Expressions');
+    for (key in result.analyzedExprs.keys().toArray().order(thx.Strings.compare)) {
+      var a = result.analyzedExprs.get(key);
+      log('  ---------------------------');
+      log('  $key');
+      log('    original:');
+      log('      ${a.originalExprString}');
+      log('    expanded:');
+      log('      ${a.expandedExprString}');
+    }
   }
 }
 
