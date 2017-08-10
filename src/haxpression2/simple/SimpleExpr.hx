@@ -36,7 +36,7 @@ typedef SimpleExprEvaluatorUnOp = ExprEvaluatorUnOp<SimpleValue>;
 typedef SimpleExprEvaluatorBinOp = ExprEvaluatorBinOp<SimpleValue>;
 typedef SimpleExprEvaluatorFunc = ExprEvaluatorFunc<SimpleValue>;
 typedef SimpleEvalError = EvalError<SimpleAnnotatedExpr>;
-typedef SimpleExprEvaluatorOptions = ExprEvaluatorOptions<SimpleAnnotatedExpr, SimpleEvalError, SimpleValue, ParseMeta>;
+typedef SimpleExprEvaluatorOptions = ExprEvaluatorOptions<SimpleAnnotatedExpr, SimpleEvalError, SimpleValue>;
 typedef SimpleExprEvaluatorResult = ExprEvaluatorResult<SimpleAnnotatedExpr, SimpleEvalError, SimpleValue>;
 typedef SimpleExprStringEvaluatorResult = ExprStringEvaluatorResult<SimpleAnnotatedExpr, SimpleParseError, SimpleEvalError, SimpleValue>;
 
@@ -73,7 +73,7 @@ class SimpleExprParser {
 }
 
 class SimpleExprRenderer {
-  public static function renderString(expr : SimpleExpr) : String {
+  public static function renderString<A>(expr : Expr<SimpleValue, A>) : String {
     return ExprRenderer.renderString(expr, SimpleValueRenderer.renderString);
   }
 
@@ -130,18 +130,18 @@ class SimpleExprs {
 
   public static function getStandardExprEvaluatorBinOps() : Map<String, ExprEvaluatorBinOp<SimpleValue>> {
     return [
-      "*" => mul,
-      "/" => safeDiv,
-      "+" => add,
-      "-" => sub,
-      "==" => eq,
-      "!=" => neq,
-      "<" => lt,
-      "<=" => lte,
-      ">" => gt,
-      ">=" => gte,
-      "&&" => and,
-      "||" => or
+      "*" => { eval: mul },
+      "/" => { eval: safeDiv },
+      "+" => { eval: add },
+      "-" => { eval: sub },
+      "==" => { eval: eq },
+      "!=" => { eval: neq },
+      "<" => { eval: lt },
+      "<=" => { eval: lte },
+      ">" => { eval: gt },
+      ">=" => { eval: gte },
+      "&&" => { eval: and },
+      "||" => { eval: or }
     ];
   }
 
@@ -160,8 +160,8 @@ class SimpleExprs {
   public static function getStandardExprEvaluatorUnOps() : { pre: Map<String, SimpleExprEvaluatorUnOp>, post: Map<String, SimpleExprEvaluatorUnOp> } {
     return {
       pre: [
-        "-" => negate,
-        "~" => not
+        "-" => { eval: negate },
+        "~" => { eval: not }
       ],
       post: new Map()
     };
@@ -169,7 +169,7 @@ class SimpleExprs {
 
   public static function getStandardExprEvaluatorFuncs() : Map<String, SimpleExprEvaluatorFunc> {
     return [
-      "sum" => sum
+      "sum" => { arity: Variable, eval: sum }
     ];
   }
 

@@ -72,6 +72,14 @@ abstract AnnotatedExprGroup<V, A>(AnnotatedExprGroupImpl<V, A>) from AnnotatedEx
     return AnnotatedExprGroupSchema.schema(valueSchema, annotationSchema).renderJSONString(group);
   }
 
+  public static function getVars<V, A>(group : AnnotatedExprGroup<V, A>) : Iterator<String> {
+    return unwrap(group).keys();
+  }
+
+  public static function getVarCount<V, A>(group : AnnotatedExprGroup<V, A>) : Int {
+    return getVars(group).toArray().length;
+  }
+
   public static function hasVar<V, A>(group : AnnotatedExprGroup<V, A>, name : String) : Bool {
     return unwrap(group).exists(name);
   }
@@ -141,8 +149,13 @@ abstract AnnotatedExprGroup<V, A>(AnnotatedExprGroupImpl<V, A>) from AnnotatedEx
   }
 
   public static function analyze<V, A>(group : AnnotatedExprGroup<V, A>, renderValue : V -> String) : AnalyzeResult<V, A> {
+    // Fully expand the group expressions
     var expandedGroup : AnnotatedExprGroup<V, Unit> = expand(group);
 
+    // - Loop over all the variables in the group, and create a data structure to hold
+    //   the original expression info and the expanded expression info.
+    // - Also collect all the external variables from each variable's expression, so we can dependency sort
+    //   the variables after this.
     var result : { allExternalVars: Array<String>, analyzedExprs: Map<String, AnalyzedExpr<V, A>> } =
       group.foldLeftWithKeys(function(acc : { allExternalVars: Array<String>, analyzedExprs: Map<String, AnalyzedExpr<V, A>> }, name : String, original : AnnotatedExpr<V, A>) {
         var expandedExpr = expandedGroup.unwrap().get(name);
@@ -162,7 +175,7 @@ abstract AnnotatedExprGroup<V, A>(AnnotatedExprGroupImpl<V, A>) from AnnotatedEx
 
     var definedVars = group.unwrap().keys().toArray();
     var externalVars = result.allExternalVars.distinct();
-    var allVars = definedVars.concat(externalVars);
+    var allVars = definedVars.concat(externalVars); // these should not overlap if the expand was done correctly
     var dependencySortedVars = dependencySortVars(expandedGroup, allVars);
 
     return new AnalyzeResult({
@@ -177,13 +190,12 @@ abstract AnnotatedExprGroup<V, A>(AnnotatedExprGroupImpl<V, A>) from AnnotatedEx
   public static function dependencySortVars<V, A>(group : AnnotatedExprGroup<V, A>, vars : Array<String>) : Array<String> {
     var seen : Map<String, Bool> = new Map();
     return vars.reduce(function(graph : graphx.StringGraph, name : String) : graphx.StringGraph {
-      if (seen.exists(name)) {
+      if (seen.exists(name)) { // performance optimization to skip variables we've already seen
         return graph;
       }
       seen.set(name, true);
       graph.addNode(name);
       group.getVar(name).each(function(annotatedExpr : AnnotatedExpr<V, A>) : Void {
-        //trace('add edges from $name to ${annotatedExpr.getVarsArray().join(", ")}');
         var depVars = annotatedExpr.getVarsArray();
         for (depVar in depVars) {
           graph.addNode(depVar);

@@ -2,6 +2,8 @@ package haxpression2;
 
 import utest.Assert;
 
+using thx.Iterators;
+using thx.Options;
 import thx.Unit;
 import thx.schema.SchemaDSL.*;
 import thx.schema.SimpleSchema;
@@ -13,7 +15,7 @@ using haxpression2.render.SchemaJSONRenderer;
 import haxpression2.schema.AnnotatedExprSchema;
 import haxpression2.schema.ExprSchema;
 import haxpression2.schema.ParseMetaSchema;
-import haxpression2.simple.SimpleExpr;
+using haxpression2.simple.SimpleExpr;
 import haxpression2.simple.SimpleValue;
 
 import TestHelper;
@@ -31,7 +33,7 @@ class TestAnnotatedExprGroup {
     .map(groupString -> Assert.same("a: 1\nb: 2\nc: a + b", groupString));
   }
 
-  public function testExpand<E, V, A>() : Void {
+  public function testExpand1() : Void {
     AnnotatedExprGroup.parseStringMap([
       "a" => "1",
       "b" => "2",
@@ -40,18 +42,18 @@ class TestAnnotatedExprGroup {
       "e" => "44 / 10 + a",
       "x" => "y * z"
     ], TestHelper.getTestExprParserOptions())
-    .map(group -> {
-      //trace('original:\n${AnnotatedExprGroup.renderString(group, SimpleValueRenderer.renderString, ParseMeta.renderString)}');
-      return group;
-    })
     .map(group -> group.expand())
     .map(group -> {
-      //trace('expanded:\n${AnnotatedExprGroup.renderString(group, SimpleValueRenderer.renderString, _ -> "")}');
-      //trace('expanded JSON:\n${AnnotatedExprGroup.renderJSONString(group, SimpleValueSchema.schema(), constant(unit))}');
+      Assert.same("1", group.getVar("a").get().expr.renderString());
+      Assert.same("2", group.getVar("b").get().expr.renderString());
+      Assert.same("1 + 44 / 10 + 1", group.getVar("c").get().expr.renderString());
+      Assert.same("1 + 1 + 44 / 10 + 1 + 6 + y * z + 2", group.getVar("d").get().expr.renderString());
+      Assert.same("44 / 10 + 1", group.getVar("e").get().expr.renderString());
+      Assert.same("y * z", group.getVar("x").get().expr.renderString());
     });
   }
 
-  public function testAnalyze() : Void {
+  public function testAnalyze1() : Void {
     AnnotatedExprGroup.parseStringMap([
       "a" => "1",
       "b" => "2",
@@ -60,60 +62,52 @@ class TestAnnotatedExprGroup {
       "e" => "44 / 10 + a",
       "x" => "y * z"
     ], TestHelper.getTestExprParserOptions())
-    .map(group -> {
-      trace('original:\n${AnnotatedExprGroup.renderPlainString(group, SimpleValueRenderer.renderString, ParseMeta.renderString)}');
-      return group;
-    })
     .map(group -> group.analyze(SimpleValueRenderer.renderString))
     .map(result -> {
-      var str = AnalyzeResult.schema(
-        AnalyzedExpr.schema(
-          AnnotatedExprSchema.schema(SimpleValueSchema.schema(), ParseMetaSchema.schema()),
-          AnnotatedExprSchema.schema(SimpleValueSchema.schema(), constant(unit))
-        )
-      ).renderJSONString(result);
-      trace(str);
+      //TestHelper.traceAnalyzeResult(result);
+      Assert.same(["a", "b", "c", "d", "e", "x", "y", "z"], result.allVars);
+      Assert.same(["y", "z"], result.externalVars);
+      Assert.same(["a", "b", "c", "d", "e", "x"], result.definedVars);
+      Assert.same(["e", "z", "y", "x", "d", "c", "b", "a"], result.dependencySortedVars);
+      Assert.same(6, result.analyzedExprs.keys().toArray().length);
     });
   }
 
-  /*
-  public function testExpand<E, V, A>() : Void {
+  public function testExpand2() : Void {
     AnnotatedExprGroup.parseStringMap([
-      "a" => "1",
-      "b" => "2",
-      "c" => "a + e",
-      "d" => "a + c + 6 + x + b",
-      "e" => "44 / 10 + a"
-    ], TestHelper.getTestParserOptions())
-    .map(group -> {
-      trace('original:\n${AnnotatedExprGroup.renderPlainString(group, SimpleValueRenderer.renderString, ParseMeta.renderString)}');
-      return group;
-    })
+      "a" => "b + x",
+      "b" => "c + y",
+      "c" => "d + e",
+      "d" => "x + y + z",
+      "e" => "123"
+    ], TestHelper.getTestExprParserOptions())
     .map(group -> group.expand())
     .map(group -> {
-      var metaSchema : Schema<E, ExpandMeta<SimpleValue, ParseMeta>>;
-
-      metaSchema = lazy(() ->
-        ExpandMeta.schema(
-          AnnotatedExprSchema.schema(SimpleValueSchema.schema(), ParseMetaSchema.schema()),
-          ExprSchema.schema(SimpleValueSchema.schema(), metaSchema)
-        ).schema
-      );
-
-      return {
-        plain: AnnotatedExprGroup.renderString(group, SimpleValueRenderer.renderString, ExpandMeta.renderString),
-        json: AnnotatedExprGroup.renderJSONString(
-          group,
-          SimpleValueSchema.schema(),
-          metaSchema
-        )
-      };
-    })
-    .map(data -> {
-      trace('expanded (plain):\n${data.plain}');
-
-      trace('expanded (JSON):\n${data.json}');
+      Assert.same(5, group.getVarCount());
+      Assert.same("x + y + z + 123 + y + x", group.getVar("a").get().expr.renderString());
+      Assert.same("x + y + z + 123 + y", group.getVar("b").get().expr.renderString());
+      Assert.same("x + y + z + 123", group.getVar("c").get().expr.renderString());
+      Assert.same("x + y + z", group.getVar("d").get().expr.renderString());
+      Assert.same("123", group.getVar("e").get().expr.renderString());
     });
   }
-  */
+
+  public function testAnalyze2() : Void {
+    AnnotatedExprGroup.parseStringMap([
+      "a" => "b + x",
+      "b" => "c + y",
+      "c" => "d + e",
+      "d" => "x + y + z",
+      "e" => "123"
+    ], TestHelper.getTestExprParserOptions())
+    .map(group -> group.analyze(SimpleValueRenderer.renderString))
+    .map(result -> {
+      //TestHelper.traceAnalyzeResult(result);
+      Assert.same(5, result.analyzedExprs.keys().toArray().length);
+      Assert.same(["a", "b", "c", "d", "e", "x", "y", "z"], result.allVars);
+      Assert.same(["x", "y", "z"], result.externalVars);
+      Assert.same(["a", "b", "c", "d", "e"], result.definedVars);
+      Assert.same(["e", "z", "y", "x", "d", "c", "b", "a"], result.dependencySortedVars);
+    });
+  }
 }

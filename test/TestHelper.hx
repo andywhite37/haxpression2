@@ -1,18 +1,24 @@
+import utest.Assert;
+
 import thx.Either;
 import thx.Nel;
+import thx.Unit;
 import thx.Validation;
 import thx.Validation.*;
+import thx.schema.SimpleSchema.*;
 
 import Parsihax;
 
-import utest.Assert;
-
 using haxpression2.AnnotatedExpr;
+using haxpression2.AnnotatedExprGroup;
 using haxpression2.Expr;
 using haxpression2.Value;
+import haxpression2.eval.AnnotatedExprEvaluator;
 import haxpression2.eval.EvalError;
 import haxpression2.parse.ExprParser;
 import haxpression2.parse.ParseMeta;
+using haxpression2.render.SchemaJSONRenderer;
+import haxpression2.schema.AnnotatedExprSchema;
 import haxpression2.schema.ParseMetaSchema;
 import haxpression2.simple.SimpleExpr;
 import haxpression2.simple.SimpleValue;
@@ -122,6 +128,22 @@ class TestHelper {
     };
   }
 
+  public static function simplifyString(input : String) : String {
+    return AnnotatedExprEvaluator.simplifyString(
+      input,
+      getTestExprParserOptions(),
+      getTestExprEvaluatorOptions(),
+      SimpleValue.renderString
+    );
+  }
+
+  public static function assertSimplifyString(expected : String, input : String, ?pos : haxe.PosInfos) : Void {
+    switch simplifyString(input) {
+      case Left(errors) : Assert.fail(errors.toArray().map(err -> err.toString()).join("\n"), pos);
+      case Right(actual) : Assert.same(expected, actual, pos);
+    };
+  }
+
   public static function traceExpr(input : String, ?pos : haxe.PosInfos) : Void {
     switch parseString(input) {
       case Left(error) : trace(error.toString(), pos);
@@ -141,5 +163,16 @@ class TestHelper {
       case Left(error) : trace(error.toString(), pos);
       case Right(ae) : Assert.same(expected, AnnotatedExpr.getVarsMap(ae), pos);
     }
+  }
+
+  public static function traceAnalyzeResult(result : AnalyzeResult<SimpleValue, ParseMeta>) : Void {
+    var str = AnalyzeResult.schema(
+      AnalyzedExpr.schema(
+        AnnotatedExprSchema.schema(SimpleValueSchema.schema(), ParseMetaSchema.schema()),
+        AnnotatedExprSchema.schema(SimpleValueSchema.schema(), constant(unit))
+      )
+    )
+    .renderJSONString(result);
+    trace(str);
   }
 }

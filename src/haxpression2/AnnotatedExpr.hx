@@ -3,6 +3,8 @@ package haxpression2;
 using thx.Arrays;
 using thx.Maps;
 import thx.Tuple;
+import thx.Unit;
+import thx.fp.Functions.const;
 
 import haxpression2.Expr;
 
@@ -19,12 +21,20 @@ class AnnotatedExpr<V, A> {
     return new AnnotatedExpr(expr, annotation);
   }
 
+  public static function isAnyLit<V, A>(ae : AnnotatedExpr<V, A>) : Bool {
+    return Exprs.isAnyLit(ae.expr);
+  }
+
   public static function mapValue<V1, V2, A>(ae : AnnotatedExpr<V1, A>, f : V1 -> V2) : AnnotatedExpr<V2, A> {
     return new AnnotatedExpr(Exprs.mapValue(ae.expr, f), ae.annotation);
   }
 
   public static function mapAnnotation<V, A, B>(ae : AnnotatedExpr<V, A>, f : AnnotatedExpr<V, A> -> B) : AnnotatedExpr<V, B> {
     return new AnnotatedExpr(Exprs.mapAnnotation(ae.expr, f), f(ae));
+  }
+
+  public static function voidAnnotation<V, A>(ae : AnnotatedExpr<V, A>) : AnnotatedExpr<V, Unit> {
+    return mapAnnotation(ae, const(unit));
   }
 
   public static function getVarsMap<V, A>(ae : AnnotatedExpr<V, A>) : Map<String, Array<A>> {

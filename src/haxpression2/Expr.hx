@@ -27,6 +27,13 @@ class Exprs {
     };
   }
 
+  public static function isAnyLit<V, A>(expr : Expr<V, A>) : Bool {
+    return switch expr {
+      case ELit(_) : true;
+      case _ : false;
+    }
+  }
+
   public static function getVarsArray<V, A>(expr : Expr<V, A>) : Array<String> {
     function accVars(acc: Array<String>, expr : Expr<V, A>) : Array<String> {
       return switch expr {
