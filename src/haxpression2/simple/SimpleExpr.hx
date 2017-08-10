@@ -1,5 +1,7 @@
 package haxpression2.simple;
 
+import Parsihax;
+
 using thx.Arrays;
 import thx.Validation;
 import thx.Validation.*;
@@ -25,20 +27,21 @@ import haxpression2.simple.SimpleValue;
 
 // Specialized type aliases
 
-typedef SimpleExpr = Expr<SimpleValue, ParseMeta>;
-typedef SimpleAnnotatedExpr = AnnotatedExpr<SimpleValue, ParseMeta>;
+typedef SimpleExpr<A> = Expr<SimpleValue, A>;
+typedef SimpleAnnotatedExpr<A> = AnnotatedExpr<SimpleValue, A>;
 
-typedef SimpleExprParserOptions = ExprParserOptions<SimpleValue, Float, ParseMeta>;
-typedef SimpleParseError = ParseError<SimpleAnnotatedExpr>;
-typedef SimpleExprParserResult = ExprParserResult<SimpleValue, ParseMeta>;
+typedef SimpleExprParserOptions<A> = ExprParserOptions<SimpleValue, Float, A>;
+typedef SimpleParseError<A> = ParseError<SimpleAnnotatedExpr<A>>;
+typedef SimpleExprParserResult<A> = ExprParserResult<SimpleValue, A>;
 
 typedef SimpleExprEvaluatorUnOp = ExprEvaluatorUnOp<SimpleValue>;
 typedef SimpleExprEvaluatorBinOp = ExprEvaluatorBinOp<SimpleValue>;
 typedef SimpleExprEvaluatorFunc = ExprEvaluatorFunc<SimpleValue>;
-typedef SimpleEvalError = EvalError<SimpleAnnotatedExpr>;
-typedef SimpleExprEvaluatorOptions = ExprEvaluatorOptions<SimpleAnnotatedExpr, SimpleEvalError, SimpleValue>;
-typedef SimpleExprEvaluatorResult = ExprEvaluatorResult<SimpleAnnotatedExpr, SimpleEvalError, SimpleValue>;
-typedef SimpleExprStringEvaluatorResult = ExprStringEvaluatorResult<SimpleAnnotatedExpr, SimpleParseError, SimpleEvalError, SimpleValue>;
+
+typedef SimpleEvalError<TExpr> = EvalError<TExpr>;
+typedef SimpleExprEvaluatorOptions<TExpr> = ExprEvaluatorOptions<TExpr, SimpleEvalError<TExpr>, SimpleValue>;
+typedef SimpleExprEvaluatorResult<TExpr> = ExprEvaluatorResult<TExpr, SimpleEvalError<TExpr>, SimpleValue>;
+typedef SimpleExprStringEvaluatorResult<TExpr, A> = ExprStringEvaluatorResult<TExpr, SimpleParseError<A>, SimpleEvalError<TExpr>, SimpleValue>;
 
 typedef SimpleExprFormatStringResult = ExprFormatStringResult<SimpleValue, ParseMeta>;
 
@@ -47,27 +50,27 @@ typedef SimpleAnnotatedExprGroup<A> = AnnotatedExprGroup<SimpleValue, A>;
 // Specialized wrapper classes
 
 class SimpleExprSchema {
-  public static function schema<E>() : Schema<E, SimpleExpr> {
+  public static function schema<E>() : Schema<E, SimpleExpr<ParseMeta>> {
     return ExprSchema.schema(SimpleValueSchema.schema(), ParseMetaSchema.schema());
   }
 }
 
 class SimpleAnnotatedExprSchema {
-  public static function schema<E>() : Schema<E, SimpleAnnotatedExpr> {
+  public static function schema<E>() : Schema<E, SimpleAnnotatedExpr<ParseMeta>> {
     return AnnotatedExprSchema.schema(SimpleValueSchema.schema(), ParseMetaSchema.schema());
   }
 }
 
 class SimpleExprParser {
-  public static function parseString(input : String, options: SimpleExprParserOptions) : SimpleExprParserResult {
+  public static function parseString(input : String, options: SimpleExprParserOptions<ParseMeta>) : SimpleExprParserResult<ParseMeta> {
     return ExprParser.parseString(input, options);
   }
 
-  public static function parseStrings(input : Array<String>, options : SimpleExprParserOptions) : VNel<ParseError<SimpleAnnotatedExpr>, Array<SimpleAnnotatedExpr>> {
+  public static function parseStrings(input : Array<String>, options : SimpleExprParserOptions<ParseMeta>) : VNel<ParseError<SimpleAnnotatedExpr<ParseMeta>>, Array<SimpleAnnotatedExpr<ParseMeta>>> {
     return ExprParser.parseStrings(input, options);
   }
 
-  public static function parseStringMap(input : Map<String, String>, options : SimpleExprParserOptions) : VNel<ParseError<SimpleAnnotatedExpr>, Map<String, SimpleAnnotatedExpr>> {
+  public static function parseStringMap(input : Map<String, String>, options : SimpleExprParserOptions<ParseMeta>) : VNel<ParseError<SimpleAnnotatedExpr<ParseMeta>>, Map<String, SimpleAnnotatedExpr<ParseMeta>>> {
     return ExprParser.parseStringMap(input, options);
   }
 }
@@ -77,7 +80,7 @@ class SimpleExprRenderer {
     return ExprRenderer.renderString(expr, SimpleValueRenderer.renderString);
   }
 
-  public static function formatString(input : String, options: SimpleExprParserOptions) : SimpleExprFormatStringResult {
+  public static function formatString(input : String, options: SimpleExprParserOptions<ParseMeta>) : SimpleExprFormatStringResult {
     return ExprRenderer.formatString(input, options, SimpleValueRenderer.renderString);
   }
 }
@@ -89,11 +92,11 @@ class SimpleAnnotatedExprRenderer {
 }
 
 class SimpleAnnotatedExprEvaluator {
-  public static function eval(expr : SimpleAnnotatedExpr, evalOptions: SimpleExprEvaluatorOptions) : SimpleExprEvaluatorResult {
+  public static function eval<A>(expr : SimpleAnnotatedExpr<A>, evalOptions: SimpleExprEvaluatorOptions<SimpleAnnotatedExpr<A>>) : SimpleExprEvaluatorResult<SimpleAnnotatedExpr<A>> {
     return AnnotatedExprEvaluator.eval(expr, evalOptions);
   }
 
-  public static function evalString(input: String, parserOptions: SimpleExprParserOptions, evalOptions: SimpleExprEvaluatorOptions) : SimpleExprStringEvaluatorResult {
+  public static function evalString<A>(input: String, parserOptions: SimpleExprParserOptions<A>, evalOptions: SimpleExprEvaluatorOptions<SimpleAnnotatedExpr<A>>) : SimpleExprStringEvaluatorResult<SimpleAnnotatedExpr<A>, A> {
     return AnnotatedExprEvaluator.evalString(input, parserOptions, evalOptions);
   }
 }
@@ -105,7 +108,7 @@ class SimpleAnnotatedExprGroupRenderer {
 }
 
 class SimpleExprs {
-  public static function getStandardExprParserOptions() : SimpleExprParserOptions {
+  public static function getStandardExprParserOptions<A>(options: { annotate : Index -> A }) : SimpleExprParserOptions<A> {
     return {
       variableNameRegexp: ~/[a-z][a-z0-9]*(?:!?[a-z0-9]+)?/i,
       functionNameRegexp: ~/[a-z][a-z0-9]*/i,
@@ -113,7 +116,7 @@ class SimpleExprs {
       unOps: SimpleExprs.getStandardExprParserUnOps(),
       parseDecimal: Std.parseFloat,
       convertValue: thx.Functions.identity,
-      annotate: ParseMeta.new
+      annotate: options.annotate
     };
   }
 

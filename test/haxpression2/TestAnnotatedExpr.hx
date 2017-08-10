@@ -4,11 +4,11 @@ import utest.Assert;
 
 using thx.Eithers;
 import thx.Nel;
-import thx.Validation;
 import thx.Validation.*;
 
+using haxpression2.eval.AnnotatedExprEvaluator;
+import haxpression2.parse.ParseMeta;
 import haxpression2.parse.ParseMeta.create as meta;
-import haxpression2.render.ExprRenderer;
 import haxpression2.simple.SimpleExpr;
 
 import TestHelper.assertAnnotatedExprGetVars;
@@ -52,8 +52,8 @@ class TestAnnotatedExpr {
 
   public static function assertSubstituteMap(expected : String, input : String, vars : Map<String, String>, ?pos : haxe.PosInfos) : Void {
     val3(
-      function(expectedExpr : SimpleAnnotatedExpr, inputExpr : SimpleAnnotatedExpr, subExprs : Map<String, SimpleAnnotatedExpr>) {
-        var actualExpr = AnnotatedExpr.substituteMap(inputExpr, subExprs);
+      function(expectedExpr : SimpleAnnotatedExpr<ParseMeta>, inputExpr : SimpleAnnotatedExpr<ParseMeta>, subExprs : Map<String, SimpleAnnotatedExpr<ParseMeta>>) {
+        var actualExpr = AnnotatedExprEvaluator.substituteMap(inputExpr, subExprs);
         var expectedStr = TestHelper.renderString(expectedExpr.expr);
         var actualStr = TestHelper.renderString(actualExpr.expr);
         Assert.same(expectedStr, actualStr);

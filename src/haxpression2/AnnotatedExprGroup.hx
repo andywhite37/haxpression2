@@ -19,6 +19,7 @@ import graphx.NodeOrValue;
 using haxpression2.AnnotatedExpr;
 using haxpression2.AnnotatedExprGroup;
 using haxpression2.Expr;
+using haxpression2.eval.AnnotatedExprEvaluator;
 import haxpression2.parse.ExprParser;
 import haxpression2.parse.ParseError;
 import haxpression2.render.ExprRenderer;

@@ -5,15 +5,18 @@ import thx.Nel;
 import thx.Unit;
 import thx.Validation;
 import thx.Validation.*;
+import thx.schema.SimpleSchema;
 import thx.schema.SimpleSchema.*;
 
 import Parsihax;
+import Parsihax.Index;
 
 using haxpression2.AnnotatedExpr;
 using haxpression2.AnnotatedExprGroup;
 using haxpression2.Expr;
 using haxpression2.Value;
 import haxpression2.eval.AnnotatedExprEvaluator;
+import haxpression2.eval.ExprEvaluator;
 import haxpression2.eval.EvalError;
 import haxpression2.parse.ExprParser;
 import haxpression2.parse.ParseMeta;
@@ -24,11 +27,11 @@ import haxpression2.simple.SimpleExpr;
 import haxpression2.simple.SimpleValue;
 
 class TestHelper {
-  public static function getTestExprParserOptions() : SimpleExprParserOptions {
-    return SimpleExprs.getStandardExprParserOptions();
+  public static function getTestExprParserOptions<A>(options: { annotate : Index -> A }) : SimpleExprParserOptions<A> {
+    return SimpleExprs.getStandardExprParserOptions(options);
   }
 
-  public static function getTestExprEvaluatorOptions() : SimpleExprEvaluatorOptions {
+  public static function getTestExprEvaluatorOptions<TExpr>() : SimpleExprEvaluatorOptions<TExpr> {
     return {
       variables: [
         "a" => Values.int(0),
@@ -45,8 +48,8 @@ class TestHelper {
     };
   }
 
-  public static function getTestExprParser() : Parser<SimpleAnnotatedExpr> {
-    return ExprParser.create(getTestExprParserOptions()).expr;
+  public static function getTestExprParser<A>(options: { annotate : Index -> A }) : Parser<SimpleAnnotatedExpr<A>> {
+    return ExprParser.create(getTestExprParserOptions(options)).expr;
   }
 
   public static function assertParseValue(expected : SimpleValue, input : String, ?pos : haxe.PosInfos) : Void {
@@ -63,24 +66,24 @@ class TestHelper {
     };
   }
 
-  public static function parseString(input : String) : Either<SimpleParseError, SimpleAnnotatedExpr> {
-    return SimpleExprParser.parseString(input, getTestExprParserOptions());
+  public static function parseString(input : String) : Either<SimpleParseError<ParseMeta>, SimpleAnnotatedExpr<ParseMeta>> {
+    return SimpleExprParser.parseString(input, getTestExprParserOptions({ annotate: ParseMeta.new }));
   }
 
-  public static function parseStrings(input : Array<String>) : VNel<SimpleParseError, Array<SimpleAnnotatedExpr>> {
-    return SimpleExprParser.parseStrings(input, getTestExprParserOptions());
+  public static function parseStrings(input : Array<String>) : VNel<SimpleParseError<ParseMeta>, Array<SimpleAnnotatedExpr<ParseMeta>>> {
+    return SimpleExprParser.parseStrings(input, getTestExprParserOptions({ annotate: ParseMeta.new }));
   }
 
-  public static function parseStringMap(input : Map<String, String>) : VNel<SimpleParseError, Map<String, SimpleAnnotatedExpr>> {
-    return SimpleExprParser.parseStringMap(input, getTestExprParserOptions());
+  public static function parseStringMap(input : Map<String, String>) : VNel<SimpleParseError<ParseMeta>, Map<String, SimpleAnnotatedExpr<ParseMeta>>> {
+    return SimpleExprParser.parseStringMap(input, getTestExprParserOptions({ annotate: ParseMeta.new }));
   }
 
-  public static function renderString(input : SimpleExpr) : String {
+  public static function renderString<A>(input : SimpleExpr<A>) : String {
     return SimpleExprRenderer.renderString(input);
   }
 
-  public static function assertParseString(input : String, expected : SimpleAnnotatedExpr, ?log : Bool, ?pos : haxe.PosInfos) : Void {
-    switch SimpleExprParser.parseString(input, TestHelper.getTestExprParserOptions()) {
+  public static function assertParseString<A>(input : String, expected : SimpleAnnotatedExpr<A>, ?log : Bool, ?pos : haxe.PosInfos) : Void {
+    switch SimpleExprParser.parseString(input, TestHelper.getTestExprParserOptions({ annotate: ParseMeta.new })) {
       case Left(parseError) : Assert.fail(parseError.toString(), pos);
       case Right(actual) :
         if (log) {
@@ -92,31 +95,31 @@ class TestHelper {
   }
 
   public static function assertParseStringError(input : String, ?pos : haxe.PosInfos) : Void {
-    switch SimpleExprParser.parseString(input, TestHelper.getTestExprParserOptions()) {
+    switch SimpleExprParser.parseString(input, TestHelper.getTestExprParserOptions({ annotate: ParseMeta.new })) {
       case Left(parseError) : Assert.pass(pos);
       case Right(_) : Assert.fail('$input should not have parsed', pos);
     };
   }
 
   public static function assertFormatString(expected : String, input : String, ?pos : haxe.PosInfos) : Void {
-    switch SimpleExprRenderer.formatString(input, getTestExprParserOptions()) {
+    switch SimpleExprRenderer.formatString(input, getTestExprParserOptions({ annotate: ParseMeta.new })) {
       case Left(error) : Assert.fail(error.toString());
       case Right(actual) : Assert.same(expected, actual);
     };
   }
 
-  static function evalErrorsToString(errors : Nel<{ expr: SimpleAnnotatedExpr, error: SimpleEvalError }>) : String {
-    return errors.map(evalErrorToString).toArray().join("\n");
+  static function evalErrorsToString<E, A>(errors : Nel<{ expr: SimpleAnnotatedExpr<A>, error: SimpleEvalError<SimpleAnnotatedExpr<A>> }>, metaSchema : Schema<E, A>) : String {
+    return errors.map(error -> evalErrorToString(error, metaSchema)).toArray().join("\n");
   }
 
-  static function evalErrorToString(data: { expr: SimpleAnnotatedExpr, error : SimpleEvalError }) : String {
-    return data.error.renderString(ae -> SimpleAnnotatedExprRenderer.renderJSONString(ae, SimpleValueSchema.schema(), ParseMetaSchema.schema()));
+  static function evalErrorToString<E, A>(data: { expr: SimpleAnnotatedExpr<A>, error : SimpleEvalError<SimpleAnnotatedExpr<A>> }, metaSchema : Schema<E, A>) : String {
+    return data.error.renderString(ae -> SimpleAnnotatedExprRenderer.renderJSONString(ae, SimpleValueSchema.schema(), metaSchema));
   }
 
   public static function evalString(input : String) : VNel<String, SimpleValue> {
-    return switch SimpleAnnotatedExprEvaluator.evalString(input, getTestExprParserOptions(), getTestExprEvaluatorOptions()) {
+    return switch SimpleAnnotatedExprEvaluator.evalString(input, getTestExprParserOptions({ annotate: ParseMeta.new }), getTestExprEvaluatorOptions()) {
       case ParseError(error) : failureNel(error.toString());
-      case EvalErrors(errors) : failureNel(evalErrorsToString(errors));
+      case EvalErrors(errors) : failureNel(evalErrorsToString(errors, ParseMetaSchema.schema()));
       case Evaluated(value) : successNel(value);
     };
   }
@@ -129,19 +132,16 @@ class TestHelper {
   }
 
   public static function simplifyString(input : String) : String {
-    return AnnotatedExprEvaluator.simplifyString(
+    return ExprEvaluator.simplifyString(
       input,
-      getTestExprParserOptions(),
+      getTestExprParserOptions({ annotate: _ -> unit }),
       getTestExprEvaluatorOptions(),
-      SimpleValue.renderString
+      SimpleValueRenderer.renderString
     );
   }
 
   public static function assertSimplifyString(expected : String, input : String, ?pos : haxe.PosInfos) : Void {
-    switch simplifyString(input) {
-      case Left(errors) : Assert.fail(errors.toArray().map(err -> err.toString()).join("\n"), pos);
-      case Right(actual) : Assert.same(expected, actual, pos);
-    };
+    Assert.same(expected, simplifyString(input), pos);
   }
 
   public static function traceExpr(input : String, ?pos : haxe.PosInfos) : Void {

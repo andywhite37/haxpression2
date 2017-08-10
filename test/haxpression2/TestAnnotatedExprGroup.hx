@@ -28,7 +28,7 @@ class TestAnnotatedExprGroup {
       "a" => "1",
       "b" => "2",
       "c" => "a + b",
-    ], TestHelper.getTestExprParserOptions())
+    ], TestHelper.getTestExprParserOptions({ annotate: ParseMeta.new }))
     .map(group -> SimpleAnnotatedExprGroup.renderPlainString(group, SimpleValueRenderer.renderString, ParseMeta.renderString))
     .map(groupString -> Assert.same("a: 1\nb: 2\nc: a + b", groupString));
   }
@@ -41,7 +41,7 @@ class TestAnnotatedExprGroup {
       "d" => "a + c + 6 + x + b",
       "e" => "44 / 10 + a",
       "x" => "y * z"
-    ], TestHelper.getTestExprParserOptions())
+    ], TestHelper.getTestExprParserOptions({ annotate: _ -> unit }))
     .map(group -> group.expand())
     .map(group -> {
       Assert.same("1", group.getVar("a").get().expr.renderString());
@@ -61,7 +61,7 @@ class TestAnnotatedExprGroup {
       "d" => "a + c + 6 + x + b",
       "e" => "44 / 10 + a",
       "x" => "y * z"
-    ], TestHelper.getTestExprParserOptions())
+    ], TestHelper.getTestExprParserOptions({ annotate: _ -> unit }))
     .map(group -> group.analyze(SimpleValueRenderer.renderString))
     .map(result -> {
       //TestHelper.traceAnalyzeResult(result);
@@ -80,7 +80,7 @@ class TestAnnotatedExprGroup {
       "c" => "d + e",
       "d" => "x + y + z",
       "e" => "123"
-    ], TestHelper.getTestExprParserOptions())
+    ], TestHelper.getTestExprParserOptions({ annotate: _ -> unit }))
     .map(group -> group.expand())
     .map(group -> {
       Assert.same(5, group.getVarCount());
@@ -99,7 +99,7 @@ class TestAnnotatedExprGroup {
       "c" => "d + e",
       "d" => "x + y + z",
       "e" => "123"
-    ], TestHelper.getTestExprParserOptions())
+    ], TestHelper.getTestExprParserOptions({ annotate: _ -> unit }))
     .map(group -> group.analyze(SimpleValueRenderer.renderString))
     .map(result -> {
       //TestHelper.traceAnalyzeResult(result);

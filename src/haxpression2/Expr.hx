@@ -1,8 +1,7 @@
 package haxpression2;
 
 using thx.Arrays;
-using thx.Maps;
-import thx.Tuple;
+import thx.Unit;
 
 /**
  *  Expression AST
@@ -47,13 +46,13 @@ class Exprs {
     return accVars([], expr).distinct();
   }
 
-  public static function mapValue<V1, V2, A>(expr : Expr<V1, A>, f : V1 -> V2) : Expr<V2, A> {
+  public static function mapLit<V1, V2, A>(expr : Expr<V1, A>, f : V1 -> V2) : Expr<V2, A> {
     return switch expr {
       case ELit(v) : ELit(f(v));
       case EVar(name) : EVar(name);
-      case EFunc(name, args) : EFunc(name, args.map(arg -> AnnotatedExpr.mapValue(arg, f)));
-      case EUnOpPre(operator, precedence, operandExpr) : EUnOpPre(operator, precedence, AnnotatedExpr.mapValue(operandExpr, f));
-      case EBinOp(operator, precedence, leftExpr, rightExpr) : EBinOp(operator, precedence, AnnotatedExpr.mapValue(leftExpr, f), AnnotatedExpr.mapValue(rightExpr, f));
+      case EFunc(name, args) : EFunc(name, args.map(arg -> AnnotatedExpr.mapLit(arg, f)));
+      case EUnOpPre(operator, precedence, operandExpr) : EUnOpPre(operator, precedence, AnnotatedExpr.mapLit(operandExpr, f));
+      case EBinOp(operator, precedence, leftExpr, rightExpr) : EBinOp(operator, precedence, AnnotatedExpr.mapLit(leftExpr, f), AnnotatedExpr.mapLit(rightExpr, f));
     }
   }
 
@@ -65,5 +64,9 @@ class Exprs {
       case EUnOpPre(operator, precedence, operandExpr) : EUnOpPre(operator, precedence, AnnotatedExpr.mapAnnotation(operandExpr, f));
       case EBinOp(operator, precedence, leftExpr, rightExpr) : EBinOp(operator, precedence, AnnotatedExpr.mapAnnotation(leftExpr, f), AnnotatedExpr.mapAnnotation(rightExpr, f));
     };
+  }
+
+  public static function voidAnnotation<V, A>(expr : Expr<V, A>) : Expr<V, Unit> {
+    return mapAnnotation(expr, _ -> unit);
   }
 }

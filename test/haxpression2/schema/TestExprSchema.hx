@@ -152,17 +152,17 @@ class TestExprSchema {
     var input = "1+ 2 + a  /b+ func ( true  ,   'hi' ) - sin(cos(x)/atan2(y), false) * ((a + b) / 3)  ";
 
     // Parse string
-    SimpleExprParser.parseString(input, SimpleExprs.getStandardExprParserOptions())
+    SimpleExprParser.parseString(input, SimpleExprs.getStandardExprParserOptions({ annotate: ParseMeta.new }))
       .toRight()
-      .map(function(ae : SimpleAnnotatedExpr) : Dynamic {
+      .map(function(ae : SimpleAnnotatedExpr<ParseMeta>) : Dynamic {
         // Render Dynamic
         return SimpleAnnotatedExprSchema.schema().renderDynamic(ae);
       })
-      .flatMap(function(data : Dynamic) : Option<SimpleAnnotatedExpr> {
+      .flatMap(function(data : Dynamic) : Option<SimpleAnnotatedExpr<ParseMeta>> {
         // Parse Dynamic
         return SimpleAnnotatedExprSchema.schema().parseDynamic(identity, data).either.toRight();
       })
-      .map(function(ae : SimpleAnnotatedExpr) : String {
+      .map(function(ae : SimpleAnnotatedExpr<ParseMeta>) : String {
         // Render back to string
         return SimpleExprRenderer.renderString(ae.expr);
       })
