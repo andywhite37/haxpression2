@@ -8,6 +8,7 @@ class TestAll {
     runner.addCase(new haxpression2.TestAnnotatedExpr());
     runner.addCase(new haxpression2.TestAnnotatedExprGroup());
     runner.addCase(new haxpression2.TestExpr());
+    runner.addCase(new haxpression2.compile.TestExprCompiler());
     runner.addCase(new haxpression2.eval.TestExprEvaluator());
     runner.addCase(new haxpression2.parse.TestExprParser());
     runner.addCase(new haxpression2.parse.TestValueParser());
@@ -17,7 +18,7 @@ class TestAll {
     runner.addCase(new haxpression2.schema.TestValueSchema());
 
 #if js
-    runner.addCase(new mappings.TestMappings());
+    //runner.addCase(new mappings.TestMappings());
 #end
 
     Report.create(runner);

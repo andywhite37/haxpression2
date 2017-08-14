@@ -263,6 +263,7 @@ class AnalyzeResult<V, A> {
     ));
   }
 
+#if js
   public static function logPlainString<V, A>(result : AnalyzeResult<V, A>) : Void {
     var log = js.Node.console.log;
     log('--------------');
@@ -300,6 +301,7 @@ class AnalyzeResult<V, A> {
       log('      ${a.expandedExprString}');
     }
   }
+#end
 }
 
 class AnalyzedExpr<V, A> {
