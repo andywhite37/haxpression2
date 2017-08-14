@@ -27,7 +27,7 @@ class TestExprCompiler {
               CENumBinOp(
                 Add(
                   new AnnotatedCompiledExpr(
-                    CELit(NVal(1.0)),
+                    CELit(DTNum, Val(1.0)),
                     meta(0, 1, 1)
                   ),
                   new AnnotatedCompiledExpr(
@@ -38,7 +38,7 @@ class TestExprCompiler {
                           meta(9, 1, 10)
                         ),
                         new AnnotatedCompiledExpr(
-                          CELit(Span(5, Year)),
+                          CELit(DTSpan, Span(5, Year)),
                           meta(20, 1, 21)
                         )
                       )
@@ -72,15 +72,15 @@ class TestExprCompiler {
               CEFunc(
                 Coalesce([
                   new AnnotatedCompiledExpr(
-                    CELit(NNA),
+                    CELit(DTNum, NA),
                     meta(9, 1, 10)
                   ),
                   new AnnotatedCompiledExpr(
-                    CELit(NVal(2)),
+                    CELit(DTNum, Val(2)),
                     meta(13, 1, 14)
                   ),
                   new AnnotatedCompiledExpr(
-                    CELit(NNM),
+                    CELit(DTNum, NM),
                     meta(16, 1, 17)
                   )
                 ])

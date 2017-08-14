@@ -14,9 +14,9 @@ import haxpression2.parse.ParseError;
 import haxpression2.parse.ParseMeta;
 
 enum DataType<V> {
-  DTNum<F : Float> : DataType<ONumber<F>>;
-  DTBool : DataType<OBool>;
-  DTStr : DataType<OString>;
+  DTNum<N : Float> : DataType<Uncertain<N>>;
+  DTBool : DataType<Bool>;
+  DTStr : DataType<String>;
   DTSpan : DataType<Span>;
 }
 
@@ -30,51 +30,39 @@ enum Span {
   Span(v : Float, unit : TimeUnit);
 }
 
-enum ONumber<V : Float> {
-  NNA : ONumber<V>;
-  NNM : ONumber<V>;
-  NVal(v : V) : ONumber<V>;
-}
-
-enum OString {
-  SNA;
-  SNM;
-  SVal(v : String);
-}
-
-enum OBool {
-  BNA;
-  BNM;
-  BVal(v : Bool);
+enum Uncertain<V> {
+  NA : Uncertain<V>;
+  NM : Uncertain<V>;
+  Val(v : V) : Uncertain<V>;
 }
 
 enum FuncType<V> {
-  ToFloat(operand : AnnotatedCompiledExpr<ONumber<Int>, ParseMeta>) : FuncType<ONumber<Float>>;
-  Round(operand : AnnotatedCompiledExpr<ONumber<Float>, ParseMeta>) : FuncType<ONumber<Int>>;
-  Floor(operand : AnnotatedCompiledExpr<ONumber<Float>, ParseMeta>) : FuncType<ONumber<Int>>;
-  Ceil(operand : AnnotatedCompiledExpr<ONumber<Float>, ParseMeta>) : FuncType<ONumber<Int>>;
+  ToFloat(operand : AnnotatedCompiledExpr<Uncertain<Int>, ParseMeta>) : FuncType<Uncertain<Float>>;
+  Round(operand : AnnotatedCompiledExpr<Uncertain<Float>, ParseMeta>) : FuncType<Uncertain<Int>>;
+  Floor(operand : AnnotatedCompiledExpr<Uncertain<Float>, ParseMeta>) : FuncType<Uncertain<Int>>;
+  Ceil(operand : AnnotatedCompiledExpr<Uncertain<Float>, ParseMeta>) : FuncType<Uncertain<Int>>;
   Coalesce<U>(args : Array<AnnotatedCompiledExpr<U, ParseMeta>>) : FuncType<U>;
-  CAGR(operand : AnnotatedCompiledExpr<ONumber<Float>, ParseMeta>, span : AnnotatedCompiledExpr<Span, ParseMeta>) : FuncType<ONumber<Float>>;
+  CAGR(operand : AnnotatedCompiledExpr<Uncertain<Float>, ParseMeta>, span : AnnotatedCompiledExpr<Span, ParseMeta>) : FuncType<Uncertain<Float>>;
 }
 
-enum NumBinOpType<T : Float> {
-  Add(left : AnnotatedCompiledExpr<ONumber<T>, ParseMeta>, right : AnnotatedCompiledExpr<ONumber<T>, ParseMeta>) : NumBinOpType<T>;
+enum NumBinOpType<N : Float> {
+  Add(left : AnnotatedCompiledExpr<Uncertain<N>, ParseMeta>, right : AnnotatedCompiledExpr<Uncertain<N>, ParseMeta>) : NumBinOpType<N>;
 }
 
 enum BoolBinOpType {
-  And(left : AnnotatedCompiledExpr<OBool, ParseMeta>, right : AnnotatedCompiledExpr<OBool, ParseMeta>);
+  And(left : AnnotatedCompiledExpr<Bool, ParseMeta>, right : AnnotatedCompiledExpr<Bool, ParseMeta>);
 }
 
 enum CompiledExpr<T> {
-  CELit(value : T) : CompiledExpr<T>;
+  CELit(dataType : DataType<T>, value : T) : CompiledExpr<T>;
   CEVar(dataType : DataType<T>, name : String) : CompiledExpr<T>;
   CEFunc(funcType : FuncType<T>) : CompiledExpr<T>;
-  CENumBinOp<U : Float>(binOpType : NumBinOpType<U>) : CompiledExpr<ONumber<U>>;
-  CEBoolBinOp(binOpType : BoolBinOpType) : CompiledExpr<OBool>;
+  CENumBinOp<N : Float>(binOpType : NumBinOpType<N>) : CompiledExpr<Uncertain<N>>;
+  CEBoolBinOp(binOpType : BoolBinOpType) : CompiledExpr<Bool>;
 }
 
-class AnnotatedCompiledExpr<T, A> {
-  public var compiledExpr(default, null) : CompiledExpr<T>;
+class AnnotatedCompiledExpr<V, A> {
+  public var compiledExpr(default, null) : CompiledExpr<V>;
   public var annotation(default, null) : A;
 
   public function new(compiledExpr, annotation) {
@@ -84,7 +72,7 @@ class AnnotatedCompiledExpr<T, A> {
 }
 
 enum AnnotatedCompiledExprCapture<A> {
-  CE<T>(dataType : DataType<T>, compiledExpr : AnnotatedCompiledExpr<T, A>);// : AnnotatedCompiledExprCapture<A>;
+  CE<V>(dataType : DataType<V>, compiledExpr : AnnotatedCompiledExpr<V, A>);
 }
 
 class CompileError extends thx.Error {
@@ -182,15 +170,14 @@ class ExprCompiler {
     };
   }
 
-  public static function compileLit<V>(value : Value<Float>, meta : ParseMeta) : VNel<CompileError, AnnotatedCompiledExprCapture<ParseMeta>> {
+  public static function compileLit<V, N>(value : Value<Float>, meta : ParseMeta) : VNel<CompileError, AnnotatedCompiledExprCapture<ParseMeta>> {
     return switch value {
-      // TODO: assume NA and NM are of the Number type if no other context is given
-      case VNA : successNel(CE(DTNum, new AnnotatedCompiledExpr(CELit(NNA), meta)));
-      case VNM : successNel(CE(DTNum, new AnnotatedCompiledExpr(CELit(NNM), meta)));
-      case VInt(v) : successNel(CE(DTNum, new AnnotatedCompiledExpr(CELit(NVal(v)), meta)));
-      case VNum(v) : successNel(CE(DTNum, new AnnotatedCompiledExpr(CELit(NVal(v)), meta)));
-      case VBool(v) : successNel(CE(DTBool, new AnnotatedCompiledExpr(CELit(BVal(v)), meta)));
-      case VStr(v) : successNel(CE(DTStr, new AnnotatedCompiledExpr(CELit(SVal(v)), meta)));
+      case VNA : successNel(CE(DTNum, new AnnotatedCompiledExpr(CELit(DTNum, NA), meta)));
+      case VNM : successNel(CE(DTNum, new AnnotatedCompiledExpr(CELit(DTNum, NM), meta)));
+      case VInt(v) : successNel(CE(DTNum, new AnnotatedCompiledExpr(CELit(DTNum, Val(v)), meta)));
+      case VNum(v) : successNel(CE(DTNum, new AnnotatedCompiledExpr(CELit(DTNum, Val(v)), meta)));
+      case VBool(v) : successNel(CE(DTBool, new AnnotatedCompiledExpr(CELit(DTBool, v), meta)));
+      case VStr(v) : successNel(CE(DTStr, new AnnotatedCompiledExpr(CELit(DTStr, v), meta)));
     };
   }
 
@@ -233,7 +220,7 @@ class ExprCompiler {
       });
   }
 
-  public static function compileFuncCAGR(name : String, args : Array<AnnotatedExpr<Value<Float>, ParseMeta>>, meta : ParseMeta, options: ExprCompilerOptions<Value<Float>>) : VNel<CompileError, AnnotatedCompiledExpr<ONumber<Float>, ParseMeta>> {
+  public static function compileFuncCAGR(name : String, args : Array<AnnotatedExpr<Value<Float>, ParseMeta>>, meta : ParseMeta, options: ExprCompilerOptions<Value<Float>>) : VNel<CompileError, AnnotatedCompiledExpr<Uncertain<Float>, ParseMeta>> {
     return if (args.length != 2) {
       failureNel(new CompileError('"CAGR" function requires exactly two arguments', meta));
     } else {
@@ -269,9 +256,9 @@ class ExprCompiler {
     right : AnnotatedExpr<Value<Float>, ParseMeta>,
     meta: ParseMeta,
     options: ExprCompilerOptions<Value<Float>>
-  ) : VNel<CompileError, AnnotatedCompiledExpr<ONumber<V>, ParseMeta>> {
+  ) : VNel<CompileError, AnnotatedCompiledExpr<Uncertain<V>, ParseMeta>> {
     return val2(
-      function(left : AnnotatedCompiledExpr<ONumber<V>, ParseMeta>, right : AnnotatedCompiledExpr<ONumber<V>, ParseMeta>) : AnnotatedCompiledExpr<ONumber<V>, ParseMeta> {
+      function(left : AnnotatedCompiledExpr<Uncertain<V>, ParseMeta>, right : AnnotatedCompiledExpr<Uncertain<V>, ParseMeta>) : AnnotatedCompiledExpr<Uncertain<V>, ParseMeta> {
         return new AnnotatedCompiledExpr(CENumBinOp(Add(left, right)), meta);
       },
       ExprCompiler.compile(left, options).flatMapV(ensureNumberExpr),
@@ -292,7 +279,7 @@ class ExprCompiler {
     }
   }
 
-  public static function ensureNumberExpr<U, V : Float>(acec : AnnotatedCompiledExprCapture<ParseMeta>) : VNel<CompileError, AnnotatedCompiledExpr<ONumber<V>, ParseMeta>> {
+  public static function ensureNumberExpr<U, V : Float>(acec : AnnotatedCompiledExprCapture<ParseMeta>) : VNel<CompileError, AnnotatedCompiledExpr<Uncertain<V>, ParseMeta>> {
     return switch acec {
       case CE(DTNum, ace) : successNel(ace);
       case CE(DTStr, ace) : failureNel(new CompileError('Expected a number expression, but found a string expression', ace.annotation));
@@ -301,7 +288,7 @@ class ExprCompiler {
     }
   }
 
-  public static function ensureStringExpr<U, V : Float>(acec : AnnotatedCompiledExprCapture<ParseMeta>) : VNel<CompileError, AnnotatedCompiledExpr<OString, ParseMeta>> {
+  public static function ensureStringExpr<U, V : Float>(acec : AnnotatedCompiledExprCapture<ParseMeta>) : VNel<CompileError, AnnotatedCompiledExpr<String, ParseMeta>> {
     return switch acec {
       case CE(DTNum, ace) : failureNel(new CompileError('Expected a string expression, but found a number expression', ace.annotation));
       case CE(DTStr, ace) : successNel(ace);
@@ -310,7 +297,7 @@ class ExprCompiler {
     }
   }
 
-  public static function ensureBoolExpr<U, V : Float>(acec : AnnotatedCompiledExprCapture<ParseMeta>) : VNel<CompileError, AnnotatedCompiledExpr<OBool, ParseMeta>> {
+  public static function ensureBoolExpr<U, V : Float>(acec : AnnotatedCompiledExprCapture<ParseMeta>) : VNel<CompileError, AnnotatedCompiledExpr<Bool, ParseMeta>> {
     return switch acec {
       case CE(DTNum, ace) : failureNel(new CompileError('Expected a bool expression, but found a number expression', ace.annotation));
       case CE(DTStr, ace) : failureNel(new CompileError('Expected a bool expression, but found a string expression', ace.annotation));
@@ -323,9 +310,7 @@ class ExprCompiler {
     return switch acec {
       case CE(DTNum, ace) : failureNel(new CompileError('Expected a span expression, but found a number expression', ace.annotation));
       case CE(DTStr, ace) : switch ace.compiledExpr {
-        case CELit(SVal(str)) : parseSpan(str, ace.annotation).map(span -> new AnnotatedCompiledExpr(CELit(span), ace.annotation));
-        case CELit(SNA) : failureNel(new CompileError('span argument cannot be string literal NA value', ace.annotation));
-        case CELit(SNM) : failureNel(new CompileError('span argument cannot be string literal NM value', ace.annotation));
+        case CELit(DTStr, str) : parseSpan(str, ace.annotation).map(span -> new AnnotatedCompiledExpr(CELit(DTSpan, span), ace.annotation));
         case CEVar(_) : failureNel(new CompileError('span argument must be a string literal', ace.annotation));
         case CEFunc(_) : failureNel(new CompileError('span argument must be a string literal', ace.annotation));
       };
@@ -343,35 +328,10 @@ class ExprCompiler {
         case "y" : successNel(Span(intPart, Year));
         case "m" : successNel(Span(intPart, Month));
         case "d" : successNel(Span(intPart, Day));
-        case _ : throw new thx.Error('should not happen');
+        case _ : failureNel(new CompileError('invalid unit in span string literal: $str', meta)); // this should not happen
       }
     } else {
       failureNel(new CompileError('string "$str" is not a valid span string', meta));
-    }
-  }
-
-  public static function ensureAllSameType<U, V>(acecs : Array<AnnotatedCompiledExprCapture<ParseMeta>>, meta : ParseMeta) : VNel<CompileError, Array<AnnotatedCompiledExprCapture<ParseMeta>>> {
-    return if (acecs.length <= 1) {
-      successNel(acecs);
-    } else {
-      var first = acecs[0];
-      var allSame = acecs.all(function(acec : AnnotatedCompiledExprCapture<ParseMeta>) : Bool {
-        return switch [acec, first] {
-          case [CE(DTNum, _), CE(DTNum, _)] : true;
-          case [CE(DTStr, _), CE(DTStr, _)] : true;
-          case [CE(DTBool, _), CE(DTBool, _)] : true;
-          case [CE(DTSpan, _), CE(DTSpan, _)] : true;
-          case [CE(DTNum, _), CE(_, _)] : false;
-          case [CE(DTStr, _), CE(_, _)] : false;
-          case [CE(DTBool, _), CE(_, _)] : false;
-          case [CE(DTSpan, _), CE(_, _)] : false;
-        };
-      });
-      return if (allSame) {
-        successNel(acecs);
-      } else {
-        failureNel(new CompileError('arguments must all be of the same data type', meta));
-      }
     }
   }
 }
