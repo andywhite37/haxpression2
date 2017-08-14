@@ -69,9 +69,9 @@ class TestExprParser {
   }
 
   public function testLitNum() {
-    assertParseString("0.0", ae(ELit(VNum(0.0)), meta(0, 1, 1)));
-    assertParseString("1.0", ae(ELit(VNum(1.0)), meta(0, 1, 1)));
-    assertParseString(" 1.1  ", ae(ELit(VNum(1.1)), meta(1, 1, 2)));
+    assertParseString("0.0", ae(ELit(VReal(0.0)), meta(0, 1, 1)));
+    assertParseString("1.0", ae(ELit(VReal(1.0)), meta(0, 1, 1)));
+    assertParseString(" 1.1  ", ae(ELit(VReal(1.1)), meta(1, 1, 2)));
   }
 
   public function testLitBool() {

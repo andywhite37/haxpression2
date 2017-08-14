@@ -1,9 +1,6 @@
 package haxpression2.compile;
 
-import haxe.ds.Option;
-
 using thx.Arrays;
-using thx.Functions;
 import thx.Nel;
 import thx.Validation;
 import thx.Validation.*;
@@ -14,20 +11,11 @@ import haxpression2.parse.ParseError;
 import haxpression2.parse.ParseMeta;
 
 enum DataType<V> {
-  DTNum<N : Float> : DataType<Uncertain<N>>;
+  DTUInt : DataType<Uncertain<Int>>;
+  DTUReal : DataType<Uncertain<Float>>;
   DTBool : DataType<Bool>;
   DTStr : DataType<String>;
   DTSpan : DataType<Span>;
-}
-
-enum TimeUnit {
-  Year;
-  Month;
-  Day;
-}
-
-enum Span {
-  Span(v : Float, unit : TimeUnit);
 }
 
 enum Uncertain<V> {
@@ -36,29 +24,65 @@ enum Uncertain<V> {
   Val(v : V) : Uncertain<V>;
 }
 
-enum FuncType<V> {
-  ToFloat(operand : AnnotatedCompiledExpr<Uncertain<Int>, ParseMeta>) : FuncType<Uncertain<Float>>;
-  Round(operand : AnnotatedCompiledExpr<Uncertain<Float>, ParseMeta>) : FuncType<Uncertain<Int>>;
-  Floor(operand : AnnotatedCompiledExpr<Uncertain<Float>, ParseMeta>) : FuncType<Uncertain<Int>>;
-  Ceil(operand : AnnotatedCompiledExpr<Uncertain<Float>, ParseMeta>) : FuncType<Uncertain<Int>>;
-  Coalesce<U>(args : Array<AnnotatedCompiledExpr<U, ParseMeta>>) : FuncType<U>;
-  CAGR(operand : AnnotatedCompiledExpr<Uncertain<Float>, ParseMeta>, span : AnnotatedCompiledExpr<Span, ParseMeta>) : FuncType<Uncertain<Float>>;
+enum Span {
+  Span(v : Float, unit : TimeUnit);
 }
 
-enum NumBinOpType<N : Float> {
-  Add(left : AnnotatedCompiledExpr<Uncertain<N>, ParseMeta>, right : AnnotatedCompiledExpr<Uncertain<N>, ParseMeta>) : NumBinOpType<N>;
+enum TimeUnit {
+  Year;
+  Month;
+  Day;
 }
 
-enum BoolBinOpType {
+enum CompiledFunc<V> {
+  ToFloat(operand : AnnotatedCompiledExpr<Uncertain<Int>, ParseMeta>) : CompiledFunc<Uncertain<Float>>;
+  Round(operand : AnnotatedCompiledExpr<Uncertain<Float>, ParseMeta>) : CompiledFunc<Uncertain<Int>>;
+  Floor(operand : AnnotatedCompiledExpr<Uncertain<Float>, ParseMeta>) : CompiledFunc<Uncertain<Int>>;
+  Ceil(operand : AnnotatedCompiledExpr<Uncertain<Float>, ParseMeta>) : CompiledFunc<Uncertain<Int>>;
+  Coalesce<U>(args : Array<AnnotatedCompiledExpr<U, ParseMeta>>) : CompiledFunc<U>;
+  CAGR(operand : AnnotatedCompiledExpr<Uncertain<Float>, ParseMeta>, span : AnnotatedCompiledExpr<Span, ParseMeta>) : CompiledFunc<Uncertain<Float>>;
+}
+
+enum CompiledIntBinOp {
+}
+
+enum CompiledRealBinOp {
+  Add(left : AnnotatedCompiledExpr<Uncertain<Float>, ParseMeta>, right : AnnotatedCompiledExpr<Uncertain<Float>, ParseMeta>);
+  Sub(left : AnnotatedCompiledExpr<Uncertain<Float>, ParseMeta>, right : AnnotatedCompiledExpr<Uncertain<Float>, ParseMeta>);
+  Mul(left : AnnotatedCompiledExpr<Uncertain<Float>, ParseMeta>, right : AnnotatedCompiledExpr<Uncertain<Float>, ParseMeta>);
+  Div(left : AnnotatedCompiledExpr<Uncertain<Float>, ParseMeta>, right : AnnotatedCompiledExpr<Uncertain<Float>, ParseMeta>);
+  Mod(left : AnnotatedCompiledExpr<Uncertain<Float>, ParseMeta>, right : AnnotatedCompiledExpr<Uncertain<Float>, ParseMeta>);
+}
+
+typedef CreateRealBinOp =
+  AnnotatedCompiledExpr<Uncertain<Float>, ParseMeta> ->
+  AnnotatedCompiledExpr<Uncertain<Float>, ParseMeta> ->
+  CompiledRealBinOp;
+
+enum CompiledBoolBinOp {
   And(left : AnnotatedCompiledExpr<Bool, ParseMeta>, right : AnnotatedCompiledExpr<Bool, ParseMeta>);
+  Or(left : AnnotatedCompiledExpr<Bool, ParseMeta>, right : AnnotatedCompiledExpr<Bool, ParseMeta>);
+  Xor(left : AnnotatedCompiledExpr<Bool, ParseMeta>, right : AnnotatedCompiledExpr<Bool, ParseMeta>);
 }
+
+enum CompiledStringBinOp {
+}
+
+enum CompiledRealUnOpPre {
+  Negate(operand : AnnotatedCompiledExpr<Uncertain<Float>, ParseMeta>);
+}
+
+typedef CreateRealUnOpPre = AnnotatedCompiledExpr<Uncertain<Float>, ParseMeta> -> CompiledRealUnOpPre;
 
 enum CompiledExpr<T> {
   CELit(dataType : DataType<T>, value : T) : CompiledExpr<T>;
   CEVar(dataType : DataType<T>, name : String) : CompiledExpr<T>;
-  CEFunc(funcType : FuncType<T>) : CompiledExpr<T>;
-  CENumBinOp<N : Float>(binOpType : NumBinOpType<N>) : CompiledExpr<Uncertain<N>>;
-  CEBoolBinOp(binOpType : BoolBinOpType) : CompiledExpr<Bool>;
+  CEFunc(funcType : CompiledFunc<T>) : CompiledExpr<T>;
+  CEIntBinOp(binOpType : CompiledIntBinOp) : CompiledExpr<Uncertain<Int>>;
+  CERealBinOp(binOpType : CompiledRealBinOp) : CompiledExpr<Uncertain<Float>>;
+  CEBoolBinOp(binOpType : CompiledBoolBinOp) : CompiledExpr<Bool>;
+  CEStringBinOp(binOpType : CompiledStringBinOp) : CompiledExpr<String>;
+  CERealUnOpPre(unOpPreType : CompiledRealUnOpPre) : CompiledExpr<Uncertain<Float>>;
 }
 
 class AnnotatedCompiledExpr<V, A> {
@@ -172,18 +196,18 @@ class ExprCompiler {
 
   public static function compileLit<V, N>(value : Value<Float>, meta : ParseMeta) : VNel<CompileError, AnnotatedCompiledExprCapture<ParseMeta>> {
     return switch value {
-      case VNA : successNel(CE(DTNum, new AnnotatedCompiledExpr(CELit(DTNum, NA), meta)));
-      case VNM : successNel(CE(DTNum, new AnnotatedCompiledExpr(CELit(DTNum, NM), meta)));
-      case VInt(v) : successNel(CE(DTNum, new AnnotatedCompiledExpr(CELit(DTNum, Val(v)), meta)));
-      case VNum(v) : successNel(CE(DTNum, new AnnotatedCompiledExpr(CELit(DTNum, Val(v)), meta)));
+      case VNA : successNel(CE(DTUReal, new AnnotatedCompiledExpr(CELit(DTUReal, NA), meta)));
+      case VNM : successNel(CE(DTUReal, new AnnotatedCompiledExpr(CELit(DTUReal, NM), meta)));
+      case VInt(v) : successNel(CE(DTUInt, new AnnotatedCompiledExpr(CELit(DTUInt, Val(v)), meta)));
+      case VReal(v) : successNel(CE(DTUReal, new AnnotatedCompiledExpr(CELit(DTUReal, Val(v)), meta)));
       case VBool(v) : successNel(CE(DTBool, new AnnotatedCompiledExpr(CELit(DTBool, v), meta)));
       case VStr(v) : successNel(CE(DTStr, new AnnotatedCompiledExpr(CELit(DTStr, v), meta)));
     };
   }
 
   public static function compileVar(name : String, meta : ParseMeta) : VNel<CompileError, AnnotatedCompiledExprCapture<ParseMeta>> {
-    // Assume all variables are of type Number, otherwise we need a lookup map from variable to type, or some other naming convention
-    return successNel(CE(DTNum, new AnnotatedCompiledExpr(CEVar(DTNum, name), meta)));
+    // Assume all variables are of type DTReal, otherwise we need a lookup map from variable to type, or some other naming convention
+    return successNel(CE(DTUReal, new AnnotatedCompiledExpr(CEVar(DTUReal, name), meta)));
   }
 
   public static function compileFunc(
@@ -192,9 +216,9 @@ class ExprCompiler {
     meta : ParseMeta,
     options: ExprCompilerOptions<Value<Float>>
   ) : VNel<CompileError, AnnotatedCompiledExprCapture<ParseMeta>> {
-    return switch name {
-      case "COALESCE": compileFuncCoalesce(name, args, meta, options);
-      case "CAGR": compileFuncCAGR(name, args, meta, options).map(ace -> CE(DTNum, ace));
+    return switch name.toLowerCase() {
+      case "coalesce": compileFuncCoalesce(name, args, meta, options);
+      case "cagr": compileFuncCAGR(name, args, meta, options).map(ace -> CE(DTUReal, ace));
       case unk : failureNel(new CompileError('Unknown function: "${name}"', meta));
     };
   }
@@ -211,7 +235,8 @@ class ExprCompiler {
           failureNel(new CompileError('Function "$name" must have at least one argument', meta));
         } else {
           switch compiledArgs[0] {
-            case CE(DTNum, _) : compiledArgs.traverseValidation(ensureNumberExpr, Nel.semigroup()).map(args -> CE(DTNum, new AnnotatedCompiledExpr(CEFunc(Coalesce(args)), meta)));
+            case CE(DTUInt, _) : compiledArgs.traverseValidation(ensureIntExpr, Nel.semigroup()).map(args -> CE(DTUInt, new AnnotatedCompiledExpr(CEFunc(Coalesce(args)), meta)));
+            case CE(DTUReal, _) : compiledArgs.traverseValidation(ensureRealExpr, Nel.semigroup()).map(args -> CE(DTUReal, new AnnotatedCompiledExpr(CEFunc(Coalesce(args)), meta)));
             case CE(DTStr, _) : compiledArgs.traverseValidation(ensureStringExpr, Nel.semigroup()).map(args -> CE(DTStr, new AnnotatedCompiledExpr(CEFunc(Coalesce(args)), meta)));
             case CE(DTBool, _) : compiledArgs.traverseValidation(ensureBoolExpr, Nel.semigroup()).map(args -> CE(DTBool, new AnnotatedCompiledExpr(CEFunc(Coalesce(args)), meta)));
             case CE(DTSpan, _) : compiledArgs.traverseValidation(ensureSpanExpr, Nel.semigroup()).map(args -> CE(DTSpan, new AnnotatedCompiledExpr(CEFunc(Coalesce(args)), meta)));
@@ -228,7 +253,7 @@ class ExprCompiler {
         function(number, span) {
           return new AnnotatedCompiledExpr(CEFunc(CAGR(number, span)), meta);
         },
-        ExprCompiler.compile(args[0], options).flatMapV(ensureNumberExpr),
+        ExprCompiler.compile(args[0], options).flatMapV(ensureRealExpr),
         ExprCompiler.compile(args[1], options).flatMapV(ensureSpanExpr),
         Nel.semigroup()
       );
@@ -244,25 +269,30 @@ class ExprCompiler {
     options: ExprCompilerOptions<Value<Float>>
   ) : VNel<CompileError, AnnotatedCompiledExprCapture<ParseMeta>> {
     return switch operator {
-      case "+" : compileBinOpNumberAdd(operator, precedence, left, right, meta, options).map(ace -> CE(DTNum, ace));
+      case "+" : compileRealBinOp(operator, precedence, left, right, Add, meta, options).map(ace -> CE(DTUReal, ace));
+      case "-" : compileRealBinOp(operator, precedence, left, right, Add, meta, options).map(ace -> CE(DTUReal, ace));
+      case "*" : compileRealBinOp(operator, precedence, left, right, Mul, meta, options).map(ace -> CE(DTUReal, ace));
+      case "/" : compileRealBinOp(operator, precedence, left, right, Div, meta, options).map(ace -> CE(DTUReal, ace));
+      case "%" : compileRealBinOp(operator, precedence, left, right, Mod, meta, options).map(ace -> CE(DTUReal, ace));
       case unk : failureNel(new CompileError('Unknown binary operator: \"$operator\"', meta));
     }
   }
 
-  public static function compileBinOpNumberAdd<V : Float>(
+  public static function compileRealBinOp(
     operator : String,
     precedence : Int,
     left : AnnotatedExpr<Value<Float>, ParseMeta>,
     right : AnnotatedExpr<Value<Float>, ParseMeta>,
+    createBinOp : CreateRealBinOp,
     meta: ParseMeta,
     options: ExprCompilerOptions<Value<Float>>
-  ) : VNel<CompileError, AnnotatedCompiledExpr<Uncertain<V>, ParseMeta>> {
+  ) : VNel<CompileError, AnnotatedCompiledExpr<Uncertain<Float>, ParseMeta>> {
     return val2(
-      function(left : AnnotatedCompiledExpr<Uncertain<V>, ParseMeta>, right : AnnotatedCompiledExpr<Uncertain<V>, ParseMeta>) : AnnotatedCompiledExpr<Uncertain<V>, ParseMeta> {
-        return new AnnotatedCompiledExpr(CENumBinOp(Add(left, right)), meta);
+      function(left : AnnotatedCompiledExpr<Uncertain<Float>, ParseMeta>, right : AnnotatedCompiledExpr<Uncertain<Float>, ParseMeta>) : AnnotatedCompiledExpr<Uncertain<Float>, ParseMeta> {
+        return new AnnotatedCompiledExpr(CERealBinOp(createBinOp(left, right)), meta);
       },
-      ExprCompiler.compile(left, options).flatMapV(ensureNumberExpr),
-      ExprCompiler.compile(right, options).flatMapV(ensureNumberExpr),
+      ExprCompiler.compile(left, options).flatMapV(ensureRealExpr),
+      ExprCompiler.compile(right, options).flatMapV(ensureRealExpr),
       Nel.semigroup()
     );
   }
@@ -275,44 +305,82 @@ class ExprCompiler {
     options: ExprCompilerOptions<Value<Float>>
   ) : VNel<CompileError, AnnotatedCompiledExprCapture<ParseMeta>> {
     return switch operator {
+      case "-" : compileRealUnOpPre(operator, precedence, operand, Negate, meta, options).map(ace -> CE(DTUReal, ace));
       case unk : failureNel(new CompileError('Unknown prefix unary operator: \"$operator\"', meta));
     }
   }
 
-  public static function ensureNumberExpr<U, V : Float>(acec : AnnotatedCompiledExprCapture<ParseMeta>) : VNel<CompileError, AnnotatedCompiledExpr<Uncertain<V>, ParseMeta>> {
+  public static function compileRealUnOpPre<V>(
+    operator : String,
+    precedence : Int,
+    operand : AnnotatedExpr<Value<Float>, ParseMeta>,
+    createUnOpPre : CreateRealUnOpPre,
+    meta: ParseMeta,
+    options: ExprCompilerOptions<Value<Float>>
+  ) : VNel<CompileError, AnnotatedCompiledExpr<Uncertain<Float>, ParseMeta>> {
+    return ExprCompiler.compile(operand, options)
+      .flatMapV(ensureRealExpr)
+      .map(compiledOperand -> new AnnotatedCompiledExpr(CERealUnOpPre(createUnOpPre(compiledOperand)), meta));
+  }
+
+  public static function ensureIntExpr(acec : AnnotatedCompiledExprCapture<ParseMeta>) : VNel<CompileError, AnnotatedCompiledExpr<Uncertain<Int>, ParseMeta>> {
     return switch acec {
-      case CE(DTNum, ace) : successNel(ace);
-      case CE(DTStr, ace) : failureNel(new CompileError('Expected a number expression, but found a string expression', ace.annotation));
-      case CE(DTBool, ace) : failureNel(new CompileError('Expected a number expression, but found a boolean expression', ace.annotation));
-      case CE(DTSpan, ace) : failureNel(new CompileError('Expected a number expression, but found a span expression', ace.annotation));
+      case CE(DTUInt, ace) : successNel(ace);
+      // Note: do not allow automatic conversion from real expression to int expression
+      case CE(DTUReal, ace) : failureNel(new CompileError('Expected an integer expression, but found a real number expression', ace.annotation));
+      case CE(DTStr, ace) : failureNel(new CompileError('Expected an integer expression, but found a string expression', ace.annotation));
+      case CE(DTBool, ace) : failureNel(new CompileError('Expected an integer expression, but found a boolean expression', ace.annotation));
+      case CE(DTSpan, ace) : failureNel(new CompileError('Expected an integer expression, but found a span expression', ace.annotation));
     }
   }
 
-  public static function ensureStringExpr<U, V : Float>(acec : AnnotatedCompiledExprCapture<ParseMeta>) : VNel<CompileError, AnnotatedCompiledExpr<String, ParseMeta>> {
+  public static function ensureRealExpr(acec : AnnotatedCompiledExprCapture<ParseMeta>) : VNel<CompileError, AnnotatedCompiledExpr<Uncertain<Float>, ParseMeta>> {
     return switch acec {
-      case CE(DTNum, ace) : failureNel(new CompileError('Expected a string expression, but found a number expression', ace.annotation));
+      // Allow automatic conversion from int expression to real expression
+      case CE(DTUInt, ace) : switch ace.compiledExpr {
+        case CELit(DTUInt, NA) : successNel(new AnnotatedCompiledExpr(CELit(DTUReal, NA), ace.annotation));
+        case CELit(DTUInt, NM) : successNel(new AnnotatedCompiledExpr(CELit(DTUReal, NM), ace.annotation));
+        case CELit(DTUInt, Val(v)) : successNel(new AnnotatedCompiledExpr(CELit(DTUReal, Val(v * 1.0)), ace.annotation));
+        case CEVar(DTUInt, name) : successNel(new AnnotatedCompiledExpr(CEVar(DTUReal, name), ace.annotation));
+        case CEFunc(_) : successNel(new AnnotatedCompiledExpr(CEFunc(ToFloat(ace)), ace.annotation));
+        case CEIntBinOp(_) : successNel(new AnnotatedCompiledExpr(CEFunc(ToFloat(ace)), ace.annotation));
+      };
+      case CE(DTUReal, ace) : successNel(ace);
+      case CE(DTStr, ace) : failureNel(new CompileError('Expected a real number expression, but found a string expression', ace.annotation));
+      case CE(DTBool, ace) : failureNel(new CompileError('Expected a real number expression, but found a boolean expression', ace.annotation));
+      case CE(DTSpan, ace) : failureNel(new CompileError('Expected a real number expression, but found a span expression', ace.annotation));
+    }
+  }
+
+  public static function ensureStringExpr(acec : AnnotatedCompiledExprCapture<ParseMeta>) : VNel<CompileError, AnnotatedCompiledExpr<String, ParseMeta>> {
+    return switch acec {
+      case CE(DTUInt, ace) : failureNel(new CompileError('Expected a string expression, but found an integer expression', ace.annotation));
+      case CE(DTUReal, ace) : failureNel(new CompileError('Expected a string expression, but found a number expression', ace.annotation));
       case CE(DTStr, ace) : successNel(ace);
       case CE(DTBool, ace) : failureNel(new CompileError('Expected a string expression, but found a boolean expression', ace.annotation));
       case CE(DTSpan, ace) : failureNel(new CompileError('Expected a string expression, but found a span expression', ace.annotation));
     }
   }
 
-  public static function ensureBoolExpr<U, V : Float>(acec : AnnotatedCompiledExprCapture<ParseMeta>) : VNel<CompileError, AnnotatedCompiledExpr<Bool, ParseMeta>> {
+  public static function ensureBoolExpr(acec : AnnotatedCompiledExprCapture<ParseMeta>) : VNel<CompileError, AnnotatedCompiledExpr<Bool, ParseMeta>> {
     return switch acec {
-      case CE(DTNum, ace) : failureNel(new CompileError('Expected a bool expression, but found a number expression', ace.annotation));
+      case CE(DTUInt, ace) : failureNel(new CompileError('Expected a bool expression, but found an integer expression', ace.annotation));
+      case CE(DTUReal, ace) : failureNel(new CompileError('Expected a bool expression, but found a number expression', ace.annotation));
       case CE(DTStr, ace) : failureNel(new CompileError('Expected a bool expression, but found a string expression', ace.annotation));
       case CE(DTBool, ace) : successNel(ace);
       case CE(DTSpan, ace) : failureNel(new CompileError('Expected a bool expression, but found a span expression', ace.annotation));
     }
   }
 
-  public static function ensureSpanExpr<U, V : Float>(acec : AnnotatedCompiledExprCapture<ParseMeta>) : VNel<CompileError, AnnotatedCompiledExpr<Span, ParseMeta>> {
+  public static function ensureSpanExpr(acec : AnnotatedCompiledExprCapture<ParseMeta>) : VNel<CompileError, AnnotatedCompiledExpr<Span, ParseMeta>> {
     return switch acec {
-      case CE(DTNum, ace) : failureNel(new CompileError('Expected a span expression, but found a number expression', ace.annotation));
+      case CE(DTUInt, ace) : failureNel(new CompileError('Expected a span expression, but found an integer expression', ace.annotation));
+      case CE(DTUReal, ace) : failureNel(new CompileError('Expected a span expression, but found a number expression', ace.annotation));
       case CE(DTStr, ace) : switch ace.compiledExpr {
         case CELit(DTStr, str) : parseSpan(str, ace.annotation).map(span -> new AnnotatedCompiledExpr(CELit(DTSpan, span), ace.annotation));
-        case CEVar(_) : failureNel(new CompileError('span argument must be a string literal', ace.annotation));
-        case CEFunc(_) : failureNel(new CompileError('span argument must be a string literal', ace.annotation));
+        case CEVar(_) : failureNel(new CompileError('span expression must be a string literal', ace.annotation));
+        case CEFunc(_) : failureNel(new CompileError('span expression must be a string literal', ace.annotation));
+        case CEStringBinOp(_) : failureNel(new CompileError('span expression must be a string literal', ace.annotation));
       };
       case CE(DTBool, ace) : failureNel(new CompileError('Expected a span expression, but found a boolean expression', ace.annotation));
       case CE(DTSpan, ace) : successNel(ace);

@@ -37,9 +37,9 @@ class TestValueParser {
   }
 
   public function testValueNum() : Void {
-    assertParseValue(VNum(0.0), "0.0");
-    assertParseValue(VNum(1.0), "1.0");
-    assertParseValue(VNum(1.1), "1.1");
+    assertParseValue(VReal(0.0), "0.0");
+    assertParseValue(VReal(1.0), "1.0");
+    assertParseValue(VReal(1.1), "1.1");
   }
 
   public function testValueBool() : Void {

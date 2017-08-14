@@ -29,12 +29,12 @@ class TestValueSchema {
     }, SimpleValueSchema.schema().renderDynamic(VInt(123)));
 
     Assert.same({
-      "VNum": 0.0
-    }, SimpleValueSchema.schema().renderDynamic(VNum(0.0)));
+      "VReal": 0.0
+    }, SimpleValueSchema.schema().renderDynamic(VReal(0.0)));
 
     Assert.same({
-      "VNum": 123.1
-    }, SimpleValueSchema.schema().renderDynamic(VNum(123.1)));
+      "VReal": 123.1
+    }, SimpleValueSchema.schema().renderDynamic(VReal(123.1)));
 
     Assert.same({
       "VBool": true
@@ -70,8 +70,8 @@ class TestValueSchema {
     );
 
     Assert.same(
-      Right(VNum(123.1)),
-      SimpleValueSchema.schema().parseDynamic(identity, { VNum: 123.1 })
+      Right(VReal(123.1)),
+      SimpleValueSchema.schema().parseDynamic(identity, { VReal: 123.1 })
     );
 
     Assert.same(

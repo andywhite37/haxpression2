@@ -118,7 +118,7 @@ class SimpleExprs {
       functionNameRegexp: ~/[a-z_][a-z0-9_]*/i,
       binOps: SimpleExprs.getStandardExprParserBinOps(),
       unOps: SimpleExprs.getStandardExprParserUnOps(),
-      parseDecimal: Std.parseFloat,
+      parseReal: Std.parseFloat,
       convertValue: thx.Functions.identity,
       annotate: options.annotate
     };
@@ -200,9 +200,9 @@ class SimpleExprs {
             case [VNM, _] : successNel(VNM);
             case [_, VNM] : successNel(VNM);
             case [VInt(a), VInt(b)] : options.intInt(a, b);
-            case [VInt(a), VNum(b)] : options.intFloat(a, b);
-            case [VNum(a), VInt(b)] : options.floatInt(a, b);
-            case [VNum(a), VNum(b)] : options.floatFloat(a, b);
+            case [VInt(a), VReal(b)] : options.intFloat(a, b);
+            case [VReal(a), VInt(b)] : options.floatInt(a, b);
+            case [VReal(a), VReal(b)] : options.floatFloat(a, b);
             case [VStr(a), VStr(b)] : options.stringString(a, b);
             case [VBool(a), VBool(b)] : options.boolBool(a, b);
             case [l = _, r = _] : failureNel('cannot combine values of incompatible types: `$l` and `$r`');
@@ -217,9 +217,9 @@ class SimpleExprs {
     return reduceValues({
       values: values,
       intInt: (a, b) -> successNel(a + b).map(VInt),
-      intFloat: (a, b) -> successNel(a + b).map(VNum),
-      floatInt: (a, b) -> successNel(a + b).map(VNum),
-      floatFloat: (a, b) -> successNel(a + b).map(VNum),
+      intFloat: (a, b) -> successNel(a + b).map(VReal),
+      floatInt: (a, b) -> successNel(a + b).map(VReal),
+      floatFloat: (a, b) -> successNel(a + b).map(VReal),
       stringString: (a, b) -> successNel(a + b).map(VStr),
       boolBool: (a, b) -> failureNel('cannot sum boolean values')
     });
@@ -229,9 +229,9 @@ class SimpleExprs {
     return reduceValues({
       values: [l, r],
       intInt: (a, b) -> successNel(a + b).map(VInt),
-      intFloat: (a, b) -> successNel(a + b).map(VNum),
-      floatInt: (a, b) -> successNel(a + b).map(VNum),
-      floatFloat: (a, b) -> successNel(a + b).map(VNum),
+      intFloat: (a, b) -> successNel(a + b).map(VReal),
+      floatInt: (a, b) -> successNel(a + b).map(VReal),
+      floatFloat: (a, b) -> successNel(a + b).map(VReal),
       stringString: (a, b) -> successNel(a + b).map(VStr),
       boolBool: (a, b) -> failureNel('cannot add boolean values')
     });
@@ -241,9 +241,9 @@ class SimpleExprs {
     return reduceValues({
       values: [l, r],
       intInt: (a, b) -> successNel(a - b).map(VInt),
-      intFloat: (a, b) -> successNel(a - b).map(VNum),
-      floatInt: (a, b) -> successNel(a - b).map(VNum),
-      floatFloat: (a, b) -> successNel(a - b).map(VNum),
+      intFloat: (a, b) -> successNel(a - b).map(VReal),
+      floatInt: (a, b) -> successNel(a - b).map(VReal),
+      floatFloat: (a, b) -> successNel(a - b).map(VReal),
       stringString: (a, b) -> failureNel('cannot subtract string values'),
       boolBool: (a, b) -> failureNel('cannot subtract bool values')
   });
@@ -253,9 +253,9 @@ class SimpleExprs {
     return reduceValues({
       values: [l, r],
       intInt: (a, b) -> successNel(a * b).map(VInt),
-      intFloat: (a, b) -> successNel(a * b).map(VNum),
-      floatInt: (a, b) -> successNel(a * b).map(VNum),
-      floatFloat: (a, b) -> successNel(a * b).map(VNum),
+      intFloat: (a, b) -> successNel(a * b).map(VReal),
+      floatInt: (a, b) -> successNel(a * b).map(VReal),
+      floatFloat: (a, b) -> successNel(a * b).map(VReal),
       stringString: (a, b) -> failureNel('cannot multiply string values'),
       boolBool: (a, b) -> failureNel('cannot multiply bool values')
     });
@@ -264,10 +264,10 @@ class SimpleExprs {
   public static function safeDiv(l : SimpleValue, r: SimpleValue) : VNel<String, SimpleValue> {
     return reduceValues({
       values: [l, r],
-      intInt: (a, b) -> b == 0 ? successNel(VNM) : successNel(a / b).map(VNum),
-      intFloat: (a, b) -> b == 0 ? successNel(VNM) : successNel(a / b).map(VNum),
-      floatInt: (a, b) -> b == 0 ? successNel(VNM) : successNel(a / b).map(VNum),
-      floatFloat: (a, b) -> b == 0 ? successNel(VNM) : successNel(a / b).map(VNum),
+      intInt: (a, b) -> b == 0 ? successNel(VNM) : successNel(a / b).map(VReal),
+      intFloat: (a, b) -> b == 0 ? successNel(VNM) : successNel(a / b).map(VReal),
+      floatInt: (a, b) -> b == 0 ? successNel(VNM) : successNel(a / b).map(VReal),
+      floatFloat: (a, b) -> b == 0 ? successNel(VNM) : successNel(a / b).map(VReal),
       stringString: (a, b) -> failureNel('cannot divide string values'),
       boolBool: (a, b) -> failureNel('cannot divide bool values')
     });
@@ -374,7 +374,7 @@ class SimpleExprs {
       case VNA : successNel(VNA);
       case VNM : successNel(VNM);
       case VInt(v) : successNel(VInt(-v));
-      case VNum(v) : successNel(VNum(-v));
+      case VReal(v) : successNel(VReal(-v));
       case VStr(v) : failureNel('cannot negate string value: $v');
       case VBool(v) : failureNel('cannot negate bool value: $v');
     };
@@ -385,7 +385,7 @@ class SimpleExprs {
       case VNA : successNel(VNA);
       case VNM : successNel(VNM);
       case VInt(v) : successNel(VInt(v + 1));
-      case VNum(v) : successNel(VNum(v + 1));
+      case VReal(v) : successNel(VReal(v + 1));
       case VStr(v) : failureNel('cannot increment string value: $v');
       case VBool(v) : failureNel('cannot increment bool value: $v');
     };
@@ -396,7 +396,7 @@ class SimpleExprs {
       case VNA : failureNel('cannot `not` NA value');
       case VNM : failureNel('cannot `not` NM value');
       case VInt(v) : failureNel('cannot `not` int value: $v');
-      case VNum(v) : failureNel('cannot `not` float value: $v');
+      case VReal(v) : failureNel('cannot `not` float value: $v');
       case VStr(v) : failureNel('cannot `not` string value: $v');
       case VBool(v) : successNel(VBool(!v));
     };

@@ -19,12 +19,12 @@ class SimpleValueSchema {
 
 class SimpleValueParser {
   public static function parseString(input : String) : Either<ParseError<SimpleValue>, SimpleValue> {
-    return ValueParser.parseString(input, { parseDecimal: Std.parseFloat });
+    return ValueParser.parseString(input, { parseReal: Std.parseFloat });
   }
 }
 
 class SimpleValueRenderer {
   public static function renderString(value : SimpleValue) : String {
-    return ValueRenderer.renderString(value, { nToString: Std.string });
+    return ValueRenderer.renderString(value, { realToString: Std.string });
   }
 }

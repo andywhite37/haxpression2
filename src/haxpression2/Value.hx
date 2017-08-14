@@ -5,7 +5,7 @@ enum Value<N> {
   VNA;
   VNM;
   VInt(value : Int);
-  VNum(value : N);
+  VReal(value : N);
   VStr(value : String);
   VBool(value : Bool);
 }
@@ -26,8 +26,8 @@ class Values {
     return VInt(v);
   }
 
-  public static inline function num<N>(v : N) : Value<N> {
-    return VNum(v);
+  public static inline function real<N>(v : N) : Value<N> {
+    return VReal(v);
   }
 
   public static inline function str<N>(v : String) : Value<N> {

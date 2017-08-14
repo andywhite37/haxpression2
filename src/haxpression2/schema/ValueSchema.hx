@@ -21,11 +21,11 @@ class ValueSchema {
         }
       ),
       alt(
-        "VNum",
+        "VReal",
         nSchema,
-        (value: N) -> VNum(value),
+        (value: N) -> VReal(value),
         (value : Value<N>) -> switch value {
-          case VNum(value) : Some(value);
+          case VReal(value) : Some(value);
           case _ : None;
         }
       ),

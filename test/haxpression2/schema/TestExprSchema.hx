@@ -44,9 +44,9 @@ class TestExprSchema {
 
     assertRenderDynamic({
       ELit: {
-        VNum: 123.1
+        VReal: 123.1
       }
-    }, ELit(VNum(123.1)));
+    }, ELit(VReal(123.1)));
 
     assertRenderDynamic({
       ELit: {

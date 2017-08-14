@@ -17,12 +17,12 @@ class TestExprEvaluator {
   public function testEvalStringNumbers() {
     assertEvalString(VInt(0), "0");
     assertEvalString(VInt(3), "1+2");
-    assertEvalString(VNum(1 + 2 - 3 * 4 / 5), "1 + 2 - 3 * 4 / 5");
-    assertEvalString(VNum(1 / 2 * 3 - 4 + 5), "1 / 2 * 3 - 4 + 5");
+    assertEvalString(VReal(1 + 2 - 3 * 4 / 5), "1 + 2 - 3 * 4 / 5");
+    assertEvalString(VReal(1 / 2 * 3 - 4 + 5), "1 / 2 * 3 - 4 + 5");
     assertEvalString(VInt(1 + 2 * 3 + 4), "1 + 2 * 3 + 4");
     assertEvalString(VInt(1 + 2 * (3 + 4)), "1 + 2 * (3 + 4)");
     assertEvalString(VInt((1+2) * (3+4)), "(1 + 2) * (3 + 4)");
-    assertEvalString(VNum(101.0), "(1 + x + y + z) / b");
+    assertEvalString(VReal(101.0), "(1 + x + y + z) / b");
     assertEvalString(VInt(-2), "1 + -3");
     assertEvalString(VInt(-2), "1 + -3");
     assertEvalString(VInt(4), "1 - (-3)");

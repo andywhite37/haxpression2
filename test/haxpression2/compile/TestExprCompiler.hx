@@ -22,19 +22,19 @@ class TestExprCompiler {
       case Compiled(acec) :
         Assert.same(
           CE(
-            DTNum,
+            DTUReal,
             new AnnotatedCompiledExpr(
-              CENumBinOp(
+              CERealBinOp(
                 Add(
                   new AnnotatedCompiledExpr(
-                    CELit(DTNum, Val(1.0)),
+                    CELit(DTUReal, Val(1.0)),
                     meta(0, 1, 1)
                   ),
                   new AnnotatedCompiledExpr(
                     CEFunc(
                       CAGR(
                         new AnnotatedCompiledExpr(
-                          CEVar(DTNum, "asn!SALES"),
+                          CEVar(DTUReal, "asn!SALES"),
                           meta(9, 1, 10)
                         ),
                         new AnnotatedCompiledExpr(
@@ -57,7 +57,7 @@ class TestExprCompiler {
 
   public function testCompile_Success2() : Void {
     var result = ExprCompiler.parseAndCompile(
-      "COALESCE(NA, 2, NM)",
+      "COALESCE(NA, 2.0, NM)",
       TestHelper.getTestExprParserOptions({ annotate: ParseMeta.new }),
       ExprCompiler.getSimpleExprCompilerOptions()
     );
@@ -67,21 +67,21 @@ class TestExprCompiler {
       case Compiled(acec) :
         Assert.same(
           CE(
-            DTNum,
+            DTUReal,
             new AnnotatedCompiledExpr(
               CEFunc(
                 Coalesce([
                   new AnnotatedCompiledExpr(
-                    CELit(DTNum, NA),
+                    CELit(DTUReal, NA),
                     meta(9, 1, 10)
                   ),
                   new AnnotatedCompiledExpr(
-                    CELit(DTNum, Val(2)),
+                    CELit(DTUReal, Val(2.0)),
                     meta(13, 1, 14)
                   ),
                   new AnnotatedCompiledExpr(
-                    CELit(DTNum, NM),
-                    meta(16, 1, 17)
+                    CELit(DTUReal, NM),
+                    meta(18, 1, 19)
                   )
                 ])
               ),
@@ -105,8 +105,8 @@ class TestExprCompiler {
       case CompileErrors(errorsNel) :
         var errors = errorsNel.toArray().reverse().map(e -> e.toString());
         Assert.same(2, errors.length);
-        Assert.same('Expected a number expression, but found a boolean expression (position: 12)', errors[0]);
-        Assert.same('Expected a number expression, but found a string expression (position: 18)', errors[1]);
+        Assert.same('Expected an integer expression, but found a boolean expression (position: 12)', errors[0]);
+        Assert.same('Expected an integer expression, but found a string expression (position: 18)', errors[1]);
       case Compiled(_) : Assert.fail('expression should not have compiled');
     }
   }

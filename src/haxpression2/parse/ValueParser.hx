@@ -10,7 +10,7 @@ import haxpression2.parse.CoreParser as C;
 import haxpression2.parse.ParseError;
 
 typedef ValueParserOptions<N> = {
-  parseDecimal : String -> N
+  parseReal : String -> N
 };
 
 typedef ValueParserResult<N> = Either<ParseError<Value<N>>, Value<N>>;
@@ -31,7 +31,7 @@ class ValueParser {
   public static function create<N>(options: ValueParserOptions<N>) : ValueParsers<N> {
     var valueNA = C.na.map(_ -> VNA);
     var valueNM = C.nm.map(_ -> VNM);
-    var valueNum = C.decimalString.map(options.parseDecimal).map(VNum);
+    var valueNum = C.decimalString.map(options.parseReal).map(VReal);
     var valueInt = C.integer.map(VInt);
     var valueStr = C.string.map(VStr);
     var valueBool = C.bool.map(VBool);
