@@ -166,16 +166,26 @@ class ExprParser {
   }
 
   public static function parseStrings<V, N, A>(input : Array<String>, options : ExprParserOptions<V, N, A>) : ExprArrayParserResult<V, A> {
-    return input.traverseValidation(function(str : String) {
-      return parseString(str, options).toVNel();
+    return input.traverseValidationIndexed(function(str : String, index : Int) {
+      return parseString(str, options)
+        .leftMap(function(parseError : ParseError<AnnotatedExpr<V, A>>) : ParseError<AnnotatedExpr<V, A>> {
+          return ParseError.forField(parseError, '$index');
+        })
+        .toVNel();
     }, Nel.semigroup());
   }
 
   public static function parseStringMap<V, N, A>(input : Map<String, String>, options : ExprParserOptions<V, N, A>) : ExprMapParserResult<V, A> {
     return input
       .tuples()
-      .traverseValidation(function(keyStr : Tuple<String, String>) : VNel<ParseError<AnnotatedExpr<V, A>>, Tuple<String, AnnotatedExpr<V, A>>> {
-        return parseString(keyStr._1, options).map(ae -> new Tuple(keyStr._0, ae)).toVNel();
+      .traverseValidation(function(fieldExpr : Tuple<String, String>) : VNel<ParseError<AnnotatedExpr<V, A>>, Tuple<String, AnnotatedExpr<V, A>>> {
+        var field : String = fieldExpr._0;
+        var exprString : String = fieldExpr._1;
+        return parseString(exprString, options)
+          .leftMap(function(parseError : ParseError<AnnotatedExpr<V, A>>) : ParseError<AnnotatedExpr<V, A>> {
+            return ParseError.forField(parseError, field);
+          })
+          .map(ae -> new Tuple(field, ae)).toVNel();
       }, Nel.semigroup())
       .map(function(tuples : Array<Tuple<String, AnnotatedExpr<V, A>>>) {
         return tuples.toStringMap();
