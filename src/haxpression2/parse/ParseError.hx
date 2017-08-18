@@ -18,6 +18,7 @@ class ParseError<T> extends Error {
     super(message, stack, pos);
     this.input = input;
     this.result = result;
+    this.field = field;
   }
 
   public static function forField<T>(error : ParseError<T>, field : String) : ParseError<T> {
