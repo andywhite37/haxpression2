@@ -169,7 +169,7 @@ class ExprParser {
     return input.traverseValidationIndexed(function(str : String, index : Int) {
       return parseString(str, options)
         .leftMap(function(parseError : ParseError<AnnotatedExpr<V, A>>) : ParseError<AnnotatedExpr<V, A>> {
-          return ParseError.forField(parseError, '$index');
+          return ParseError.withFieldInfo(parseError, '$index');
         })
         .toVNel();
     }, Nel.semigroup());
@@ -183,7 +183,7 @@ class ExprParser {
         var exprString : String = fieldExpr._1;
         return parseString(exprString, options)
           .leftMap(function(parseError : ParseError<AnnotatedExpr<V, A>>) : ParseError<AnnotatedExpr<V, A>> {
-            return ParseError.forField(parseError, field);
+            return ParseError.withFieldInfo(parseError, field);
           })
           .map(ae -> new Tuple(field, ae)).toVNel();
       }, Nel.semigroup())

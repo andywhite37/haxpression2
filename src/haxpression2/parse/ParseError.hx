@@ -12,31 +12,43 @@ import Parsihax;
 class ParseError<T> extends Error {
   public var input(default, null) : String;
   public var result(default, null) : Result<T>;
-  public var field(default, null) : Option<String>;
+  public var details(default, null) : String;
+  public var fieldInfo(default, null) : Option<String>;
 
-  function new(message : String, input : String, result: Result<T>, field : Option<String>, ?stack: Array<StackItem>, ?pos: PosInfos) {
+  function new(
+    message : String,
+    input : String,
+    result: Result<T>,
+    details: String,
+    fieldInfo : Option<String>,
+    ?stack: Array<StackItem>,
+    ?pos: PosInfos
+  ) {
     super(message, stack, pos);
     this.input = input;
     this.result = result;
-    this.field = field;
+    this.details = details;
+    this.fieldInfo = fieldInfo;
   }
 
-  public static function forField<T>(error : ParseError<T>, field : String) : ParseError<T> {
-    return new ParseError(error.message, error.input, error.result, Some(field));
+  public static function withFieldInfo<T>(error : ParseError<T>, fieldInfo : String) : ParseError<T> {
+    return new ParseError(error.message, error.input, error.result, error.details, Some(fieldInfo));
   }
 
   public static function fromParseResult<T>(input : String, result : Result<T>) : ParseError<T> {
-    var message = Parsihax.formatError(result, input);
+    var message = 'Failed to parse expression "$input" (position: ${result.index})';
+    var details = Parsihax.formatError(result, input);
     return new ParseError(
-      'Failed to parse expression `$input`: $message',
+      message,
       input,
       result,
+      details,
       None
     );
   }
 
   public override function toString() : String {
-    var fieldPart = field.cataf(
+    var fieldPart = fieldInfo.cataf(
       () -> "",
       field -> 'For field "$field": '
     );
