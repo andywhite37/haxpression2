@@ -36,7 +36,7 @@ class ParseError<T> extends Error {
   }
 
   public static function fromParseResult<T>(input : String, result : Result<T>) : ParseError<T> {
-    var message = 'Failed to parse expression "$input" (position: ${result.index})';
+    var message = 'Failed to parse expression "$input" (furthest position reached: ${result.furthest})';
     var details = Parsihax.formatError(result, input);
     return new ParseError(
       message,
