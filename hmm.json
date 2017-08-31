@@ -1,23 +1,14 @@
 {
   "dependencies": [
     {
-      "name": "git@github.com:HaxeFoundation/hxnodejs",
-      "type": "git",
-      "dir": null,
-      "ref": "master",
-      "url": "046fd03"
-    },
-    {
       "name": "graphx",
       "type": "git",
-      "dir": null,
       "ref": "bd61218",
       "url": "git@github.com:andywhite37/graphx"
     },
     {
       "name": "hxnodejs",
       "type": "git",
-      "dir": null,
       "ref": "046fd03",
       "url": "git@github.com:HaxeFoundation/hxnodejs"
     },
@@ -31,28 +22,24 @@
     {
       "name": "parsihax",
       "type": "git",
-      "dir": null,
       "ref": "v0.2.2",
       "url": "git@github.com:deathbeam/parsihax"
     },
     {
       "name": "thx.core",
       "type": "git",
-      "dir": null,
       "ref": "f319d99",
       "url": "git@github.com:fponticelli/thx.core"
     },
     {
       "name": "thx.schema",
       "type": "git",
-      "dir": null,
       "ref": "0d48d93",
       "url": "git@github.com:nuttycom/thx.schema"
     },
     {
       "name": "utest",
       "type": "git",
-      "dir": null,
       "ref": "b3c4c8d",
       "url": "git@github.com:fponticelli/utest"
     }
