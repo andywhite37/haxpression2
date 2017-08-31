@@ -54,7 +54,7 @@ abstract AnnotatedExprGroup<V, A>(AnnotatedExprGroupImpl<V, A>) from AnnotatedEx
     var coalesceMap : Map<String, String> = fallbackMap
       .foldLeftWithKeys(function(acc : Map<String, String>, key : String, exprStrings : Array<String>) : Map<String, String> {
         // If a field is not defined, remove it from the group
-        return if (exprStrings == null && exprStrings.length == 0) {
+        return if (exprStrings == null || exprStrings.length == 0) {
           acc;
         } else {
           var subExprInfo = exprStrings.reducei(function(subExprInfo : { subKeys: Array<String>, map: Map<String, String> }, exprString : String, index: Int) : { subKeys: Array<String>, map: Map<String, String> } {
