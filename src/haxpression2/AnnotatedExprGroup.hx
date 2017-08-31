@@ -48,24 +48,24 @@ abstract AnnotatedExprGroup<V, A>(AnnotatedExprGroupImpl<V, A>) from AnnotatedEx
   public static function parseFallbackStringsMap<V, N, A>(
     fallbackMap : Map<String, Array<String>>,
     coalesceFunctionName: String,
+    createSubKey: String -> Int -> String,
     parserOptions: ExprParserOptions<V, N, A>
   ) : VNel<ParseError<AnnotatedExpr<V, A>>, AnnotatedExprGroup<V, A>> {
     var coalesceMap : Map<String, String> = fallbackMap
-      .foldLeftWithKeys(function(acc : Map<String, Array<String>>, key : String, exprStrings : Array<String>) {
+      .foldLeftWithKeys(function(acc : Map<String, String>, key : String, exprStrings : Array<String>) : Map<String, String> {
         // If a field is not defined, remove it from the group
-        if (exprStrings != null && exprStrings.length >= 1) {
-          acc.set(key, exprStrings);
-        }
-        return acc;
-      }, new Map())
-      .mapValues(function(exprStrings : Array<String>) : String {
-        return if (exprStrings.length == 0) {
-          // This should not happen because we filtered them out above
-          Values.NA_STR;
-        } else if (exprStrings.length == 1) {
-          exprStrings[0];
+        return if (exprStrings == null && exprStrings.length == 0) {
+          acc;
         } else {
-          '${coalesceFunctionName}(${exprStrings.join(", ")})';
+          var subExprInfo = exprStrings.reducei(function(subExprInfo : { subKeys: Array<String>, map: Map<String, String> }, exprString : String, index: Int) : { subKeys: Array<String>, map: Map<String, String> } {
+            var subKey = createSubKey(key, index);
+            subExprInfo.subKeys.push(subKey);
+            subExprInfo.map.set(subKey, exprString);
+            return subExprInfo;
+          }, { subKeys: [], map: acc });
+          var mainExprString = '${coalesceFunctionName}(${subExprInfo.subKeys.join(", ")})';
+          acc.set(key, mainExprString);
+          acc;
         }
       }, new Map());
     return parseStringMap(coalesceMap, parserOptions);

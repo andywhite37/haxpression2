@@ -114,7 +114,7 @@ class SimpleAnnotatedExprGroupRenderer {
 class SimpleExprs {
   public static function getStandardExprParserOptions<A>(options: { annotate : Index -> A }) : SimpleExprParserOptions<A> {
     return {
-      variableNameRegexp: ~/[a-z_][a-z0-9_]*(?:!?[a-z0-9_]+)?/i,
+      variableNameRegexp: ~/[a-z_][a-z0-9_]*(?:!?[a-z0-9_]+)?(?:\$[0-9]+)?/i,
       functionNameRegexp: ~/[a-z_][a-z0-9_]*/i,
       binOps: SimpleExprs.getStandardExprParserBinOps(),
       unOps: SimpleExprs.getStandardExprParserUnOps(),

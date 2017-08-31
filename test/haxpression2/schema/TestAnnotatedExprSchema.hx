@@ -27,15 +27,15 @@ class TestAnnotatedExprSchema {
   public function testRenderDynamic() : Void {
     assertRenderDynamic({
       expr: {
-        EFunc: {
+        func: {
           name: "myFunc",
           args: ([
             {
-              expr: { ELit: { VInt: 1 } },
+              expr: { lit: { int: 1 } },
               annotation: { index: { offset: 1, line: 2, column: 2 } }
             },
             {
-              expr: { EVar: "a" },
+              expr: { "var": "a" },
               annotation: { index: { offset: 3, line: 4, column: 4 } }
             }
           ] : Array<Dynamic>)

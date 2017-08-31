@@ -14,7 +14,7 @@ class ExprSchema {
     var annotatedExprSchema = AnnotatedExprSchema.schema(valueSchema, annotationSchema);
     return oneOf([
       alt(
-        "EVar",
+        "var",
         string(),
         (name: String) -> EVar(name),
         (expr : Expr<V, A>) -> switch expr {
@@ -23,7 +23,7 @@ class ExprSchema {
         }
       ),
       alt(
-        "ELit",
+        "lit",
         valueSchema,
         (value: V) -> ELit(value),
         (expr : Expr<V, A>) -> switch expr {
@@ -32,7 +32,7 @@ class ExprSchema {
         }
       ),
       alt(
-        "EFunc",
+        "func",
         object(ap2(
           (name : String, args : Array<AnnotatedExpr<V, A>>) -> { name: name, args: args },
           required("name", string(), (obj : { name: String, args: Array<AnnotatedExpr<V, A>> }) -> obj.name),
@@ -45,7 +45,7 @@ class ExprSchema {
         }
       ),
       alt(
-        "EBinOp",
+        "binOp",
         object(ap4(
           (operator : String, precedence: Int, left : AnnotatedExpr<V, A>, right : AnnotatedExpr<V, A>) -> { operator: operator, precedence: precedence, left: left, right: right },
           required("operator", string(), (obj : { operator: String, precedence: Int, left: AnnotatedExpr<V, A>, right: AnnotatedExpr<V, A> }) -> obj.operator),
@@ -60,7 +60,7 @@ class ExprSchema {
         }
       ),
       alt(
-        "EUnOpPre",
+        "unOpPre",
         object(ap3(
           (operator : String, precedence : Int, operand : AnnotatedExpr<V, A>) -> { operator: operator, precedence: precedence, operand: operand },
           required("operator", string(), (obj : { operator: String, precedence: Int, operand: AnnotatedExpr<V, A> }) -> obj.operator),

@@ -9,10 +9,10 @@ import haxpression2.Value;
 class ValueSchema {
   public static function schema<E, N>(nSchema : Schema<E, N>) : Schema<E, Value<N>> {
     return oneOf([
-      constEnum("VNA", VNA),
-      constEnum("VNM", VNM),
+      constEnum("NA", VNA),
+      constEnum("NM", VNM),
       alt(
-        "VInt",
+        "int",
         int(),
         (value: Int) -> VInt(value),
         (value : Value<N>) -> switch value {
@@ -21,7 +21,7 @@ class ValueSchema {
         }
       ),
       alt(
-        "VReal",
+        "real",
         nSchema,
         (value: N) -> VReal(value),
         (value : Value<N>) -> switch value {
@@ -30,7 +30,7 @@ class ValueSchema {
         }
       ),
       alt(
-        "VBool",
+        "bool",
         bool(),
         (value: Bool) -> VBool(value),
         (value : Value<N>) -> switch value {
@@ -39,7 +39,7 @@ class ValueSchema {
         }
       ),
       alt(
-        "VStr",
+        "string",
         string(),
         (value: String) -> VStr(value),
         (value : Value<N>) -> switch value {

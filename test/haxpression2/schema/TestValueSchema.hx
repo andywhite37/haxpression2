@@ -13,80 +13,80 @@ class TestValueSchema {
 
   public function testRenderDynamic() : Void {
     Assert.same({
-      "VNA": {}
+      "NA": {}
     }, SimpleValueSchema.schema().renderDynamic(VNA));
 
     Assert.same({
-      "VNM": {}
+      "NM": {}
     }, SimpleValueSchema.schema().renderDynamic(VNM));
 
     Assert.same({
-      "VInt": 0
+      "int": 0
     }, SimpleValueSchema.schema().renderDynamic(VInt(0)));
 
     Assert.same({
-      "VInt": 123
+      "int": 123
     }, SimpleValueSchema.schema().renderDynamic(VInt(123)));
 
     Assert.same({
-      "VReal": 0.0
+      "real": 0.0
     }, SimpleValueSchema.schema().renderDynamic(VReal(0.0)));
 
     Assert.same({
-      "VReal": 123.1
+      "real": 123.1
     }, SimpleValueSchema.schema().renderDynamic(VReal(123.1)));
 
     Assert.same({
-      "VBool": true
+      "bool": true
     }, SimpleValueSchema.schema().renderDynamic(VBool(true)));
 
     Assert.same({
-      "VBool": false
+      "bool": false
     }, SimpleValueSchema.schema().renderDynamic(VBool(false)));
 
     Assert.same({
-      "VStr": ""
+      "string": ""
     }, SimpleValueSchema.schema().renderDynamic(VStr("")));
 
     Assert.same({
-      "VStr": "hi"
+      "string": "hi"
     }, SimpleValueSchema.schema().renderDynamic(VStr("hi")));
   }
 
   public function testParseDynamic() : Void {
     Assert.same(
       Right(VNA),
-      SimpleValueSchema.schema().parseDynamic(identity, { VNA: {} })
+      SimpleValueSchema.schema().parseDynamic(identity, { NA: {} })
     );
 
     Assert.same(
       Right(VNM),
-      SimpleValueSchema.schema().parseDynamic(identity, { VNM: {} })
+      SimpleValueSchema.schema().parseDynamic(identity, { NM: {} })
     );
 
     Assert.same(
       Right(VInt(123)),
-      SimpleValueSchema.schema().parseDynamic(identity, { VInt: 123 })
+      SimpleValueSchema.schema().parseDynamic(identity, { int: 123 })
     );
 
     Assert.same(
       Right(VReal(123.1)),
-      SimpleValueSchema.schema().parseDynamic(identity, { VReal: 123.1 })
+      SimpleValueSchema.schema().parseDynamic(identity, { real: 123.1 })
     );
 
     Assert.same(
       Right(VBool(true)),
-      SimpleValueSchema.schema().parseDynamic(identity, { VBool: true })
+      SimpleValueSchema.schema().parseDynamic(identity, { bool: true })
     );
 
     Assert.same(
       Right(VBool(false)),
-      SimpleValueSchema.schema().parseDynamic(identity, { VBool: false })
+      SimpleValueSchema.schema().parseDynamic(identity, { bool: false })
     );
 
     Assert.same(
       Right(VStr("")),
-      SimpleValueSchema.schema().parseDynamic(identity, { VStr: "" })
+      SimpleValueSchema.schema().parseDynamic(identity, { string: "" })
     );
   }
 }

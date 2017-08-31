@@ -31,38 +31,38 @@ class TestExprSchema {
 
   public function testRenderDynamicEVar() : Void {
     assertRenderDynamic({
-      EVar: "test"
+      "var": "test"
     }, EVar("test"));
   }
 
   public function testRenderDynamicELit() : Void {
     assertRenderDynamic({
-      ELit: {
-        VInt: 123
+      lit: {
+        int: 123
       }
     }, ELit(VInt(123)));
 
     assertRenderDynamic({
-      ELit: {
-        VReal: 123.1
+      lit: {
+        real: 123.1
       }
     }, ELit(VReal(123.1)));
 
     assertRenderDynamic({
-      ELit: {
-        VBool: true
+      lit: {
+        bool: true
       }
     }, ELit(VBool(true)));
 
     assertRenderDynamic({
-      ELit: {
-        VBool: false
+      lit: {
+        bool: false
       }
     }, ELit(VBool(false)));
 
     assertRenderDynamic({
-      ELit: {
-        VStr: ""
+      lit: {
+        string: ""
       }
     }, ELit(VStr("")));
   }
@@ -70,15 +70,15 @@ class TestExprSchema {
   public function testRenderDynamicEFunc() : Void {
     assertRenderDynamic(
       {
-        EFunc: {
+        func: {
           name: "myFunc",
           args: ([
             {
-              expr: { ELit: { VInt: 1 } },
+              expr: { lit: { int: 1 } },
               annotation: { index: { offset: 1, line: 2, column: 2 } }
             },
             {
-              expr: { EVar: "a" },
+              expr: { "var": "a" },
               annotation: { index: { offset: 3, line: 4, column: 4 } }
             }
           ] : Array<Dynamic>)
@@ -100,18 +100,18 @@ class TestExprSchema {
   public function testRenderDynamicEBinOp() : Void {
     assertRenderDynamic(
       {
-        EBinOp: {
+        binOp: {
           operator: "+",
           precedence: 5,
           left: {
             expr: {
-              EVar: "a"
+              "var": "a"
             },
             annotation: { index: { offset: 1, line: 2, column: 3 } }
           },
           right: {
             expr: {
-              EVar: "b"
+              "var": "b"
             },
             annotation: { index: { offset: 4, line: 5, column: 6 } }
           }
@@ -129,12 +129,12 @@ class TestExprSchema {
   public function testRenderDynamicEUnOpPre() : Void {
     assertRenderDynamic(
       {
-        EUnOpPre: {
+        unOpPre: {
           operator: "~",
           precedence: 5,
           operand: {
             expr: {
-              EVar: "a"
+              "var": "a"
             },
             annotation: { index: { offset: 1, line: 2, column: 3 } }
           }
