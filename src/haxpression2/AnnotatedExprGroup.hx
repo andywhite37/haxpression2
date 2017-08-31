@@ -63,8 +63,14 @@ abstract AnnotatedExprGroup<V, A>(AnnotatedExprGroupImpl<V, A>) from AnnotatedEx
             subExprInfo.map.set(subKey, exprString);
             return subExprInfo;
           }, { subKeys: [], map: acc });
-          var mainExprString = '${coalesceFunctionName}(${subExprInfo.subKeys.join(", ")})';
-          acc.set(key, mainExprString);
+          if (subExprInfo.subKeys.length > 0) {
+            var mainExprString = if (subExprInfo.subKeys.length > 1) {
+              '${coalesceFunctionName}(${subExprInfo.subKeys.join(", ")})';
+            } else {
+              subExprInfo.subKeys[0];
+            }
+            acc.set(key, mainExprString);
+          }
           acc;
         }
       }, new Map());
