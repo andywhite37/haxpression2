@@ -269,45 +269,42 @@ class AnalyzeResult<V, A> {
     ));
   }
 
-#if js
-  public static function logPlainString<V, A>(result : AnalyzeResult<V, A>) : Void {
-    var log = js.Node.console.log;
-    log('--------------');
-    log('Analyze Result');
-    log('--------------');
+  public static function tracePlainString<V, A>(result : AnalyzeResult<V, A>) : Void {
+    trace('--------------');
+    trace('Analyze Result');
+    trace('--------------');
 
-    log('All vars ${result.allVars.length}');
+    trace('All vars ${result.allVars.length}');
     for (v in result.allVars.order(thx.Strings.compare)) {
-      log('  $v');
+      trace('  $v');
     }
 
-    log('Defined vars ${result.definedVars.length}');
+    trace('Defined vars ${result.definedVars.length}');
     for (v in result.definedVars.order(thx.Strings.compare)) {
-      log('  $v');
+      trace('  $v');
     }
 
-    log('External vars ${result.externalVars.length}');
+    trace('External vars ${result.externalVars.length}');
     for (v in result.externalVars.order(thx.Strings.compare)) {
-      log('  $v');
+      trace('  $v');
     }
 
-    log('Sorted vars ${result.dependencySortedVars.length}');
+    trace('Sorted vars ${result.dependencySortedVars.length}');
     for (v in result.dependencySortedVars) {
-      log('  $v');
+      trace('  $v');
     }
 
-    log('Expressions');
+    trace('Expressions');
     for (key in result.analyzedExprs.keys().toArray().order(thx.Strings.compare)) {
       var a = result.analyzedExprs.get(key);
-      log('  ---------------------------');
-      log('  $key');
-      log('    original:');
-      log('      ${a.originalExprString}');
-      log('    expanded:');
-      log('      ${a.expandedExprString}');
+      trace('  ---------------------------');
+      trace('  $key');
+      trace('    original:');
+      trace('      ${a.originalExprString}');
+      trace('    expanded:');
+      trace('      ${a.expandedExprString}');
     }
   }
-#end
 }
 
 class AnalyzedExpr<V, A> {
